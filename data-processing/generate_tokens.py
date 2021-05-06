@@ -23,8 +23,8 @@ def write_frames():
             'scene_token': scene_token,
             'timestamp': frame_df['timestamp'].iloc[0],
             'instances': [gen_token('{}_instance_{}_{}'.format(hash_base, frame_id, agent_id)) for agent_id in agent_ids],
-            'prev_frame': '' if frame_id == 0 else gen_token('{}_frame_{}'.format(hash_base, frame_id - 1)),
-            'next_frame': '' if frame_id == max(frame_ids) else gen_token('{}_frame_{}'.format(hash_base, frame_id + 1))
+            'prev': '' if frame_id == 0 else gen_token('{}_frame_{}'.format(hash_base, frame_id - 1)),
+            'next': '' if frame_id == max(frame_ids) else gen_token('{}_frame_{}'.format(hash_base, frame_id + 1))
         }
         frames[frame['frame_token']] = frame
 
