@@ -19,12 +19,12 @@ def write_frames():
         frame_df = df[df['frame_id'] == frame_id]
         agent_ids = frame_df['id'].to_numpy().astype(int)
         frame = {
-            'frame_token': gen_token('{}_frame_{}'.format(filename_base, frame_id)),
+            'frame_token': gen_token('{}_frame_{}'.format(hash_base, frame_id)),
             'scene_token': scene_token,
             'timestamp': frame_df['timestamp'].iloc[0],
-            'instances': [gen_token('{}_instance_{}_{}'.format(filename_base, frame_id, agent_id)) for agent_id in agent_ids],
-            'prev_frame': '' if frame_id == 0 else gen_token('{}_frame_{}'.format(filename_base, frame_id - 1)),
-            'next_frame': '' if frame_id == max(frame_ids) else gen_token('{}_frame_{}'.format(filename_base, frame_id + 1))
+            'instances': [gen_token('{}_instance_{}_{}'.format(hash_base, frame_id, agent_id)) for agent_id in agent_ids],
+            'prev_frame': '' if frame_id == 0 else gen_token('{}_frame_{}'.format(hash_base, frame_id - 1)),
+            'next_frame': '' if frame_id == max(frame_ids) else gen_token('{}_frame_{}'.format(hash_base, frame_id + 1))
         }
         frames[frame['frame_token']] = frame
 
@@ -39,12 +39,12 @@ def write_agents():
         agent_df = df[df['id'] == agent_id]
         frame_ids = agent_df['frame_id'].to_numpy().astype(int)
         agent = {
-            'agent_token': gen_token('{}_agent_{}'.format(filename_base, agent_id)),
+            'agent_token': gen_token('{}_agent_{}'.format(hash_base, agent_id)),
             'scene_token': scene_token,
             'type': agent_df['type'].iloc[0],
             'size': [agent_df['length'].iloc[0], agent_df['width'].iloc[0]],
-            'first_instance': gen_token('{}_instance_{}_{}'.format(filename_base, min(frame_ids), agent_id)),
-            'last_instance': gen_token('{}_instance_{}_{}'.format(filename_base, max(frame_ids), agent_id))
+            'first_instance': gen_token('{}_instance_{}_{}'.format(hash_base, min(frame_ids), agent_id)),
+            'last_instance': gen_token('{}_instance_{}_{}'.format(hash_base, max(frame_ids), agent_id))
         }
         agents[agent['agent_token']] = agent
     
@@ -62,16 +62,16 @@ def write_instances():
         for i, row in agent_df.iterrows():
             frame_id = row['frame_id']
             instance = {
-                'instance_token': gen_token('{}_instance_{}_{}'.format(filename_base, frame_id, agent_id)),
-                'agent_token': gen_token('{}_agent_{}'.format(filename_base, agent_id)),
-                'frame_token': gen_token('{}_frame_{}'.format(filename_base, frame_id)),
+                'instance_token': gen_token('{}_instance_{}_{}'.format(hash_base, frame_id, agent_id)),
+                'agent_token': gen_token('{}_agent_{}'.format(hash_base, agent_id)),
+                'frame_token': gen_token('{}_frame_{}'.format(hash_base, frame_id)),
                 'coords': [row['utm_x'], row['utm_y']],
                 'heading': row['utm_angle'],
                 'speed': row['speed'],
                 'acceleration': [row['lateral_acceleration'], row['tangential_acceleration']],
                 'mode': '',
-                'prev': '' if frame_id == min(frame_ids) else gen_token('{}_instance_{}_{}'.format(filename_base, frame_id - 1, agent_id)),
-                'next': '' if frame_id == max(frame_ids) else gen_token('{}_instance_{}_{}'.format(filename_base, frame_id + 1, agent_id))
+                'prev': '' if frame_id == min(frame_ids) else gen_token('{}_instance_{}_{}'.format(hash_base, frame_id - 1, agent_id)),
+                'next': '' if frame_id == max(frame_ids) else gen_token('{}_instance_{}_{}'.format(hash_base, frame_id + 1, agent_id))
             }
             instances[instance['instance_token']] = instance
 
@@ -85,9 +85,10 @@ def write_scene():
     scene = {
         'scene_token': scene_token,
         'filename': filename_base,
-        'first_frame': gen_token('{}_frame_{}'.format(filename_base, min(frame_ids))),
-        'last_frame': gen_token('{}_frame_{}'.format(filename_base, max(frame_ids))),
-        'agents': [gen_token('{}_agent_{}'.format(filename_base, agent_id)) for agent_id in agent_ids]
+        'timestamp': timestamp,
+        'first_frame': gen_token('{}_frame_{}'.format(hash_base, min(frame_ids))),
+        'last_frame': gen_token('{}_frame_{}'.format(hash_base, max(frame_ids))),
+        'agents': [gen_token('{}_agent_{}'.format(hash_base, agent_id)) for agent_id in agent_ids]
     }
 
     with open(filename_stem + '_scene.json', 'w') as out:
@@ -105,7 +106,9 @@ if __name__ == '__main__':
 
     process = subprocess.Popen(['mediainfo', filename_stem + '.MOV'], stdout=subprocess.PIPE)
     output, _ = process.communicate()
-    scene_token = gen_token(filename_base)
+    timestamp = ' '.join(output.decode('utf-8').split('\n')[9].split()[-2:])
+    hash_base = '{}_{}'.format(filename_base, timestamp)
+    scene_token = gen_token(hash_base)
 
     df = pd.read_csv(args.file)
 
