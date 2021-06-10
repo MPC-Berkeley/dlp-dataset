@@ -13,6 +13,13 @@ Parking Dataset by MPC Lab
     
 3. Create JSON files.
 
+    Firstly make sure the `mediainfo` program is available. Otherwise install it with
+    ```
+    sudo apt install mediainfo
+    ```
+
+    For data files:
+
     ```
     python data-processing/generate_tokens.py data/DJI_0001.csv
     ```
