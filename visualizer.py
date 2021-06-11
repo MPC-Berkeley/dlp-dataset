@@ -5,13 +5,17 @@ import matplotlib.patches as patches
 
 from dataset import Dataset
 
+ORIGIN = {'x': 747064, 'y': 3856846}
+
+MAP_SIZE = {'x': 140, 'y': 80}
+
 PARKING_AREAS = {
     'A': { # top
         'bounds': [
-            [747035.85, 3856770.37],
-            [746928.70, 3856774.70],
-            [746928.57, 3856780.52],
-            [747036.12, 3856776.37]],
+            [747035.47, 3856772.27],
+            [746928.48, 3856772.27],
+            [746928.48, 3856777.49],
+            [747035.47, 3856777.49]],
         'areas': [
             {
                 'shape': (1, 41),
@@ -20,39 +24,22 @@ PARKING_AREAS = {
         ]},
     'B': { # left, 1st down
         'bounds': [ 
-            [747051.21, 3856783.27],
-            [746987.48, 3856784.57],
-            [746987.29, 3856795.55],
-            [747056.37, 3856794.51],
-            [747056.27, 3856788.74],
-            [747055.37, 3856785.95],
-            [747053.79, 3856784.27]],
+            [747056.29, 3856784.60],
+            [746987.46, 3856784.60],
+            [746987.46, 3856795.60],
+            [747056.29, 3856795.60]],
         'areas': [
             {
-                'shape': (2, 24),
-                'coords': [
-                    [747052.74, 3856783.14],
-                    [746987.48, 3856784.57],
-                    [746987.29, 3856795.55],
-                    [747053.39, 3856794.66]
-                ]
-            }, {
-                'shape': (1, 1),
-                'coords': [
-                    [747056.30, 3856788.76],
-                    [747053.33, 3856788.88],
-                    [747053.39, 3856794.66],
-                    [747056.35, 3856794.56]
-                ]
+                'shape': (2, 25),
+                'coords': None
             }
-        ]
-    },
+        ]},
     'C': { # right, 1st down
         'bounds': [ 
-            [746980.59, 3856784.77],
-            [746928.45, 3856787.17],
-            [746928.20, 3856797.68],
-            [746980.27, 3856795.83]],
+            [746980.18, 3856784.60],
+            [746928.48, 3856784.60],
+            [746928.48, 3856795.60],
+            [746980.18, 3856795.60]],
         'areas': [
             {
                 'shape': (2, 21),
@@ -61,10 +48,10 @@ PARKING_AREAS = {
         ]},
     'D': { # left, 2nd down
         'bounds': [ 
-            [747056.39, 3856801.82],
-            [746987.16, 3856802.74],
-            [746987.10, 3856814.05],
-            [747056.59, 3856813.30]],
+            [747056.29, 3856802.76],
+            [746987.46, 3856802.76],
+            [746987.46, 3856814.07],
+            [747056.29, 3856814.07]],
         'areas': [
             {
                 'shape': (2, 25),
@@ -73,10 +60,10 @@ PARKING_AREAS = {
         ]},
     'E': { # right, 2nd down
         'bounds': [ 
-            [746980.22, 3856802.86],
-            [746928.10, 3856804.08],
-            [746927.83, 3856814.88],
-            [746980.08, 3856814.13]],
+            [746980.18, 3856802.76],
+            [746928.48, 3856802.76],
+            [746928.48, 3856814.07],
+            [746980.18, 3856814.07]],
         'areas': [
             {
                 'shape': (2, 21),
@@ -85,10 +72,10 @@ PARKING_AREAS = {
         ]},
     'F': { # left, 3rd down
         'bounds': [ 
-            [747056.68, 3856820.66],
-            [746987.12, 3856821.29],
-            [746987.11, 3856832.48],
-            [747057.00, 3856832.30]],
+            [747056.29, 3856821.32],
+            [746987.46, 3856821.32],
+            [746987.46, 3856832.49],
+            [747056.29, 3856832.49]],
         'areas': [
             {
                 'shape': (2, 25),
@@ -97,10 +84,10 @@ PARKING_AREAS = {
         ]},
     'G': { # right, 3rd down
         'bounds': [ 
-            [746980.02, 3856821.24],
-            [746927.69, 3856821.42],
-            [746927.36, 3856832.17],
-            [746980.07, 3856832.39]],
+            [746980.18, 3856821.32],
+            [746928.48, 3856821.32],
+            [746928.48, 3856832.49],
+            [746980.18, 3856832.49]],
         'areas': [
             {
                 'shape': (2, 21),
@@ -109,10 +96,10 @@ PARKING_AREAS = {
         ]},
     'H': { # left, 4th down
         'bounds': [ 
-            [747057.01, 3856839.95],
-            [746987.16, 3856839.50],
-            [746987.20, 3856845.06],
-            [747057.15, 3856845.88]],
+            [747056.29, 3856839.52],
+            [746987.46, 3856839.52],
+            [746987.46, 3856845.05],
+            [747056.29, 3856845.05]],
         'areas': [
             {
                 'shape': (1, 25),
@@ -121,13 +108,13 @@ PARKING_AREAS = {
         ]},
     'I': { # right, 4th down
         'bounds': [ 
-            [746980.19, 3856839.42],
-            [746929.63, 3856838.77],
-            [746929.37, 3856844.29],
-            [746980.16, 3856844.88]],
+            [746980.18, 3856839.52],
+            [746928.48, 3856839.52],
+            [746928.48, 3856845.05],
+            [746980.18, 3856845.05]],
         'areas': [
             {
-                'shape': (1, 20),
+                'shape': (1, 21),
                 'coords': None
             }
         ]}
@@ -154,7 +141,7 @@ class Visualizer():
         return df
 
     def _from_utm(self, coords):
-        return 747070 - coords[0], 3856850 - coords[1]
+        return ORIGIN['x'] - coords[0], ORIGIN['y'] - coords[1]
 
     def _from_utm_list(self, coords):
         return list(map(lambda c: list(self._from_utm(c)), coords))
@@ -199,14 +186,23 @@ class Visualizer():
                 
         return df
 
+    def plot_lines(self, ax):
+        """
+        plot parking lines
+        """
+        for _, p in self.parking_spaces.iterrows():
+            p_coords = self._from_utm_list(p[2:10].to_numpy().reshape((4, 2)))
+            ax.add_patch(patches.Polygon(np.array(p_coords), lw=0.5, ls='--', fill=False, color='#a0a0a0')) # c7def0
+
+
     def plot_frame(self, frame_token):
         frame = self.dataset.get('frame', frame_token)
         fig, ax = plt.subplots()
 
-        for _, p in self.parking_spaces.iterrows():
-            p_coords = self._from_utm_list(p[2:10].to_numpy().reshape((4, 2)))
-            ax.add_patch(patches.Polygon(np.array(p_coords), ls='-', fill=False, color='#c7def0'))
-            
+        # Plot parking lines
+        self.plot_lines(ax)
+        
+        # Plot instances
         for inst_token in frame['instances']:
             instance = self.dataset.get('instance', inst_token)
             agent = self.dataset.get('agent', instance['agent_token'])
@@ -214,7 +210,48 @@ class Visualizer():
                 corners = self._get_corners(self._from_utm(instance['coords']), agent['size'], instance['heading'])
                 ax.add_patch(patches.Polygon(corners, linewidth=0))
 
-        ax.set_xlim(0, 145)
-        ax.set_ylim(0, 85)
+        ax.set_xlim(0, MAP_SIZE['x'])
+        ax.set_ylim(0, MAP_SIZE['y'])
+        plt.show()
+
+    def plot_instance(self, inst_token):
+        """
+        emphasize a certain instance in a frame
+        """
+        instance = self.dataset.get('instance', inst_token)
+        agent = self.dataset.get('agent', instance['agent_token'])
+
+        print("The type of this instance is %s" % agent['type'])
+
+        fig, ax = plt.subplots()
+
+        # Plot parking lines
+        self.plot_lines(ax)
+        
+        # Plot the specified instance
+        if agent['type'] not in {'Pedestrian', 'Undefined'}:
+            corners = self._get_corners(self._from_utm(instance['coords']), agent['size'], instance['heading'])
+            ax.add_patch(patches.Polygon(corners, linewidth=0, fill=True, color='orange'))
+
+        # Plot other instances
+        frame = self.dataset.get('frame', instance['frame_token'])
+        for _inst_token in frame['instances']:
+            if _inst_token == inst_token:
+                continue
+
+            _instance = self.dataset.get('instance', _inst_token)
+            _agent = self.dataset.get('agent', _instance['agent_token'])
+            if _agent['type'] not in {'Pedestrian', 'Undefined'}:
+                corners = self._get_corners(self._from_utm(_instance['coords']), _agent['size'], _instance['heading'])
+                ax.add_patch(patches.Polygon(corners, linewidth=0))
+            
+
+        ax.set_xlim(0, MAP_SIZE['x'])
+        ax.set_ylim(0, MAP_SIZE['y'])
         plt.show()
     
+    def plot_agent_trace(self, agent_token):
+        """
+        plot the trace of an agent's state
+        """
+        pass

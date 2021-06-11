@@ -1,4 +1,7 @@
 import json
+import numpy as np
+
+ORIGIN = {'x': 747064, 'y': 3856846}
 
 class Dataset:
 
@@ -74,3 +77,34 @@ class Dataset:
             timeline.reverse()
             
         return timeline
+
+    def coords_from_utm(self, coords):
+        """
+        convert coordinates from utm to local
+        """
+        return np.array([ORIGIN['x'] - coords[0], ORIGIN['y'] - coords[1]])
+
+    def states_from_utm(self, inst_token):
+        """
+        convert states of an instance from utm coordinates to local
+        """
+        instance = self.get('instance', inst_token)
+        # Offset the coordinates and heading
+        transformed_states = {
+            'coords': self.coords_from_utm(instance['coords']),
+            'heading': instance['heading'] - np.pi,
+            'speed': instance['speed'], 
+            'acceleration': instance['acceleration']
+        }
+
+        # Determine the sign of speed
+        heading_vector = np.array([np.cos(transformed_states['heading']), 
+                                   np.sin(transformed_states['heading'])])
+
+        next_inst = self.get_agent_future(inst_token, timesteps=1)[-1]
+        motion_vector = self.coords_from_utm(next_inst['coords']) - self.coords_from_utm(instance['coords'])
+
+        if heading_vector @ motion_vector < 0:
+            transformed_states['speed'] *= -1
+
+        return transformed_states
