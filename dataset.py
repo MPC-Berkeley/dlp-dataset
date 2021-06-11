@@ -1,7 +1,15 @@
 import json
 import numpy as np
 
-ORIGIN = {'x': 747064, 'y': 3856846}
+import yaml
+from yaml.loader import SafeLoader
+
+# Load parking map
+with open('parking_map.yml') as f:
+    MAP_DATA = yaml.load(f, Loader=SafeLoader)
+
+ORIGIN = MAP_DATA['ORIGIN']
+PARKING_AREAS = MAP_DATA['PARKING_AREAS']
 
 class Dataset:
 
@@ -81,8 +89,13 @@ class Dataset:
     def coords_from_utm(self, coords):
         """
         convert coordinates from utm to local
+        coords: an array/list with length >=2, and the first two entry are x, y coordinates
+        The function will only chaneg the first two, and keep the data type and the rest of entries unchanged
         """
-        return np.array([ORIGIN['x'] - coords[0], ORIGIN['y'] - coords[1]])
+        result = coords.copy()
+        result[0] = ORIGIN['x'] - coords[0]
+        result[1] = ORIGIN['y'] - coords[1]
+        return result
 
     def states_from_utm(self, inst_token):
         """
@@ -102,7 +115,7 @@ class Dataset:
                                    np.sin(transformed_states['heading'])])
 
         next_inst = self.get_agent_future(inst_token, timesteps=1)[-1]
-        motion_vector = self.coords_from_utm(next_inst['coords']) - self.coords_from_utm(instance['coords'])
+        motion_vector = np.array(self.coords_from_utm(next_inst['coords'])) - np.array(self.coords_from_utm(instance['coords']))
 
         if heading_vector @ motion_vector < 0:
             transformed_states['speed'] *= -1

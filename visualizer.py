@@ -5,120 +5,16 @@ import matplotlib.patches as patches
 
 from dataset import Dataset
 
-ORIGIN = {'x': 747064, 'y': 3856846}
+import yaml
+from yaml.loader import SafeLoader
 
-MAP_SIZE = {'x': 140, 'y': 80}
+# Load parking map
+with open('parking_map.yml') as f:
+    MAP_DATA = yaml.load(f, Loader=SafeLoader)
 
-PARKING_AREAS = {
-    'A': { # top
-        'bounds': [
-            [747035.47, 3856772.27],
-            [746928.48, 3856772.27],
-            [746928.48, 3856777.49],
-            [747035.47, 3856777.49]],
-        'areas': [
-            {
-                'shape': (1, 41),
-                'coords': None
-            }
-        ]},
-    'B': { # left, 1st down
-        'bounds': [ 
-            [747056.29, 3856784.60],
-            [746987.46, 3856784.60],
-            [746987.46, 3856795.60],
-            [747056.29, 3856795.60]],
-        'areas': [
-            {
-                'shape': (2, 25),
-                'coords': None
-            }
-        ]},
-    'C': { # right, 1st down
-        'bounds': [ 
-            [746980.18, 3856784.60],
-            [746928.48, 3856784.60],
-            [746928.48, 3856795.60],
-            [746980.18, 3856795.60]],
-        'areas': [
-            {
-                'shape': (2, 21),
-                'coords': None
-            }
-        ]},
-    'D': { # left, 2nd down
-        'bounds': [ 
-            [747056.29, 3856802.76],
-            [746987.46, 3856802.76],
-            [746987.46, 3856814.07],
-            [747056.29, 3856814.07]],
-        'areas': [
-            {
-                'shape': (2, 25),
-                'coords': None
-            }
-        ]},
-    'E': { # right, 2nd down
-        'bounds': [ 
-            [746980.18, 3856802.76],
-            [746928.48, 3856802.76],
-            [746928.48, 3856814.07],
-            [746980.18, 3856814.07]],
-        'areas': [
-            {
-                'shape': (2, 21),
-                'coords': None
-            }
-        ]},
-    'F': { # left, 3rd down
-        'bounds': [ 
-            [747056.29, 3856821.32],
-            [746987.46, 3856821.32],
-            [746987.46, 3856832.49],
-            [747056.29, 3856832.49]],
-        'areas': [
-            {
-                'shape': (2, 25),
-                'coords': None
-            }
-        ]},
-    'G': { # right, 3rd down
-        'bounds': [ 
-            [746980.18, 3856821.32],
-            [746928.48, 3856821.32],
-            [746928.48, 3856832.49],
-            [746980.18, 3856832.49]],
-        'areas': [
-            {
-                'shape': (2, 21),
-                'coords': None
-            }
-        ]},
-    'H': { # left, 4th down
-        'bounds': [ 
-            [747056.29, 3856839.52],
-            [746987.46, 3856839.52],
-            [746987.46, 3856845.05],
-            [747056.29, 3856845.05]],
-        'areas': [
-            {
-                'shape': (1, 25),
-                'coords': None
-            }
-        ]},
-    'I': { # right, 4th down
-        'bounds': [ 
-            [746980.18, 3856839.52],
-            [746928.48, 3856839.52],
-            [746928.48, 3856845.05],
-            [746980.18, 3856845.05]],
-        'areas': [
-            {
-                'shape': (1, 21),
-                'coords': None
-            }
-        ]}
-}
+ORIGIN = MAP_DATA['ORIGIN']
+MAP_SIZE = MAP_DATA['MAP_SIZE']
+PARKING_AREAS = MAP_DATA['PARKING_AREAS']
 
 class Visualizer():
 
