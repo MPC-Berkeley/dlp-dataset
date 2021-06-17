@@ -97,17 +97,41 @@ class Dataset:
         result[1] = ORIGIN['y'] - coords[1]
         return result
 
+    def get_mode(self, inst_token, steps_to_check=50, threshold=0.01):
+        """
+        Determine the mode of the vehicle between 'parked' or 'moving' by looking at the speed profile
+        
+        inst_token: the token of the current instance
+        steps_to_check: number of instances to check forwardly and backwardly. size = 50 <-> 2s forward and 2s backward
+        threshold: the speed threshold for static / moving
+        """
+        speed_array = []
+
+        past_insts = self.get_agent_past(inst_token, timesteps=steps_to_check)
+        future_insts = self.get_agent_future(inst_token, timesteps=steps_to_check)
+
+        for inst in past_insts:
+            speed_array.append(inst['speed'])
+
+        for inst in future_insts:
+            speed_array.append(inst['speed'])
+        
+        print(speed_array)
+
+        return 'moving' if np.max(speed_array) > threshold else 'parked'
+
     def states_from_utm(self, inst_token):
         """
         convert states of an instance from utm coordinates to local
         """
         instance = self.get('instance', inst_token)
-        # Offset the coordinates and heading
+        # Offset the coordinates and heading, find the mode
         transformed_states = {
             'coords': self.coords_from_utm(instance['coords']),
             'heading': instance['heading'] - np.pi,
             'speed': instance['speed'], 
-            'acceleration': instance['acceleration']
+            'acceleration': instance['acceleration'],
+            'mode': self.get_mode(inst_token)
         }
 
         # Determine the sign of speed
