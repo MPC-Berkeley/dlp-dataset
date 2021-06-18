@@ -90,6 +90,16 @@ class Visualizer():
             p_coords = self._from_utm_list(p[2:10].to_numpy().reshape((4, 2)))
             ax.add_patch(patches.Polygon(np.array(p_coords), lw=0.5, ls='--', fill=False, color='#a0a0a0')) # c7def0
 
+    def plot_obstacles(self, ax, scene_token):
+        """
+        plot static obstacles in this scene
+        """
+        scene = self.dataset.get('scene', scene_token)
+        for obstacle_token in scene['obstacles']:
+            obstacle = self.dataset.get('obstacle', obstacle_token)
+            corners = self._get_corners(self._from_utm(obstacle['coords']), obstacle['size'], obstacle['heading'])
+            ax.add_patch(patches.Polygon(corners, linewidth=0))
+
 
     def plot_frame(self, frame_token):
         frame = self.dataset.get('frame', frame_token)
@@ -97,6 +107,9 @@ class Visualizer():
 
         # Plot parking lines
         self.plot_lines(ax)
+
+        # Plot static obstacles
+        self.plot_obstacles(ax, frame['scene_token'])
         
         # Plot instances
         for inst_token in frame['instances']:
@@ -104,7 +117,7 @@ class Visualizer():
             agent = self.dataset.get('agent', instance['agent_token'])
             if agent['type'] not in {'Pedestrian', 'Undefined'}:
                 corners = self._get_corners(self._from_utm(instance['coords']), agent['size'], instance['heading'])
-                ax.add_patch(patches.Polygon(corners, linewidth=0))
+                ax.add_patch(patches.Polygon(corners, linewidth=0, fill=True, color='orange'))
 
         ax.set_xlim(0, MAP_SIZE['x'])
         ax.set_ylim(0, MAP_SIZE['y'])
@@ -123,11 +136,14 @@ class Visualizer():
 
         # Plot parking lines
         self.plot_lines(ax)
+
+        # Plot static obstacles
+        self.plot_obstacles(ax, agent['scene_token'])
         
         # Plot the specified instance
         if agent['type'] not in {'Pedestrian', 'Undefined'}:
             corners = self._get_corners(self._from_utm(instance['coords']), agent['size'], instance['heading'])
-            ax.add_patch(patches.Polygon(corners, linewidth=0, fill=True, color='orange'))
+            ax.add_patch(patches.Polygon(corners, linewidth=0, fill=True, color='red'))
 
         # Plot other instances
         frame = self.dataset.get('frame', instance['frame_token'])
@@ -139,7 +155,7 @@ class Visualizer():
             _agent = self.dataset.get('agent', _instance['agent_token'])
             if _agent['type'] not in {'Pedestrian', 'Undefined'}:
                 corners = self._get_corners(self._from_utm(_instance['coords']), _agent['size'], _instance['heading'])
-                ax.add_patch(patches.Polygon(corners, linewidth=0))
+                ax.add_patch(patches.Polygon(corners, linewidth=0, fill=True, color='orange'))
             
 
         ax.set_xlim(0, MAP_SIZE['x'])

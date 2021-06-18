@@ -18,6 +18,7 @@ class Dataset:
         self.agents = {}
         self.instances = {}
         self.scenes = {}
+        self.obstacles = {}
 
     def load(self, filename):
         with open(filename + '_frames.json') as f:
@@ -26,12 +27,14 @@ class Dataset:
             self.agents.update(json.load(f))
         with open(filename + '_instances.json') as f:
             self.instances.update(json.load(f))
+        with open(filename + '_obstacles.json') as f:
+            self.obstacles.update(json.load(f))
         with open(filename + '_scene.json') as f:
             scene = json.load(f)
             self.scenes[scene['scene_token']] = scene
 
     def get(self, obj_type, token):
-        assert obj_type in ['frame', 'agent', 'instance', 'scene']
+        assert obj_type in ['frame', 'agent', 'instance', 'obstacle', 'scene']
 
         if obj_type == 'frame':
             return self.frames[token]
@@ -39,6 +42,8 @@ class Dataset:
             return self.agents[token]
         elif obj_type == 'instance':
             return self.instances[token]
+        elif obj_type == 'obstacle':
+            return self.obstacles[token]
         elif obj_type == 'scene':
             return self.scenes[token]
         
@@ -97,29 +102,6 @@ class Dataset:
         result[1] = ORIGIN['y'] - coords[1]
         return result
 
-    def get_mode(self, inst_token, steps_to_check=50, threshold=0.01):
-        """
-        Determine the mode of the vehicle between 'parked' or 'moving' by looking at the speed profile
-        
-        inst_token: the token of the current instance
-        steps_to_check: number of instances to check forwardly and backwardly. size = 50 <-> 2s forward and 2s backward
-        threshold: the speed threshold for static / moving
-        """
-        speed_array = []
-
-        past_insts = self.get_agent_past(inst_token, timesteps=steps_to_check)
-        future_insts = self.get_agent_future(inst_token, timesteps=steps_to_check)
-
-        for inst in past_insts:
-            speed_array.append(inst['speed'])
-
-        for inst in future_insts:
-            speed_array.append(inst['speed'])
-        
-        print(speed_array)
-
-        return 'moving' if np.max(speed_array) > threshold else 'parked'
-
     def states_from_utm(self, inst_token):
         """
         convert states of an instance from utm coordinates to local
@@ -131,7 +113,7 @@ class Dataset:
             'heading': instance['heading'] - np.pi,
             'speed': instance['speed'], 
             'acceleration': instance['acceleration'],
-            'mode': self.get_mode(inst_token)
+            'mode': instance['mode']
         }
 
         # Determine the sign of speed

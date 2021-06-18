@@ -29,3 +29,4 @@ The files created will be:
 - `data/DJI_0001_frames.json`
 - `data/DJI_0001_agents.json`
 - `data/DJI_0001_instances.json`
+- `data/DJI_0001_obstacles.json`
