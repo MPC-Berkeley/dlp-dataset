@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+from PIL import Image
 
 from dataset import Dataset
 
@@ -119,6 +120,7 @@ class Visualizer():
                 corners = self._get_corners(self._from_utm(instance['coords']), agent['size'], instance['heading'])
                 ax.add_patch(patches.Polygon(corners, linewidth=0, fill=True, color='orange'))
 
+        ax.set_aspect('equal')
         ax.set_xlim(0, MAP_SIZE['x'])
         ax.set_ylim(0, MAP_SIZE['y'])
         plt.show()
@@ -157,7 +159,7 @@ class Visualizer():
                 corners = self._get_corners(self._from_utm(_instance['coords']), _agent['size'], _instance['heading'])
                 ax.add_patch(patches.Polygon(corners, linewidth=0, fill=True, color='orange'))
             
-
+        ax.set_aspect('equal')
         ax.set_xlim(0, MAP_SIZE['x'])
         ax.set_ylim(0, MAP_SIZE['y'])
         plt.show()
