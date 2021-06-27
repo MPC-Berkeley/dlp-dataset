@@ -94,7 +94,7 @@ class Dataset:
     def coords_from_utm(self, coords):
         """
         convert coordinates from utm to local
-        coords: an array/list with length >=2, and the first two entry are x, y coordinates
+        coords: an array-like variable with length >=2, and the first two entry are x, y coordinates
         The function will only chaneg the first two, and keep the data type and the rest of entries unchanged
         """
         result = coords.copy()
@@ -107,7 +107,7 @@ class Dataset:
         convert states of an instance from utm coordinates to local
         """
         instance = self.get('instance', inst_token)
-        # Offset the coordinates and heading, find the mode
+        # Offset the coordinates and heading
         transformed_states = {
             'coords': self.coords_from_utm(instance['coords']),
             'heading': instance['heading'] - np.pi,
@@ -120,8 +120,16 @@ class Dataset:
         heading_vector = np.array([np.cos(transformed_states['heading']), 
                                    np.sin(transformed_states['heading'])])
 
-        next_inst = self.get_agent_future(inst_token, timesteps=1)[-1]
-        motion_vector = np.array(self.coords_from_utm(next_inst['coords'])) - np.array(self.coords_from_utm(instance['coords']))
+        if instance['next']:
+            next_inst = self.get('instance', instance['next'])
+        else:
+            next_inst = instance
+
+        if instance['prev']:
+            prev_inst = self.get('instance', instance['prev'])
+        else:
+            prev_inst = instance
+        motion_vector = np.array(self.coords_from_utm(next_inst['coords'])) - np.array(self.coords_from_utm(prev_inst['coords']))
 
         if heading_vector @ motion_vector < 0:
             transformed_states['speed'] *= -1
