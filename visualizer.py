@@ -1,5 +1,4 @@
 import numpy as np
-from numpy.lib.type_check import imag
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
@@ -279,5 +278,34 @@ class SemanticVisualizer(Visualizer):
         img_array[:, :, 2] = self.plot_spots(img_array)
 
         img = Image.fromarray(img_array, 'RGB').transpose(Image.FLIP_TOP_BOTTOM)
+
+        img.show()
+
+    def plot_instance_local(self, inst_token, size=100):
+        """
+        plot the local region around an instance. The ego instance is always pointing towards the west
+        size: the size of the instance-centric crop, in pixel units
+        """
+        instance = self.dataset.get('instance', inst_token)
+        frame = self.dataset.get('frame', instance['frame_token'])
+
+        # Same as plotting the frame
+        img_array = np.zeros((self.h, self.w, 3), dtype=np.uint8)
+        img_array[:, :, 0] = self.plot_agents(instance['frame_token'])
+        img_array[:, :, 1] = self.plot_obstacles(frame['scene_token'])
+        img_array[:, :, 2] = self.plot_spots(img_array)
+
+        # The location of the instance in pixel coordinates, and the angle in degrees
+        center = (self.dataset.states_from_utm(inst_token)['coords'] / self.res).astype('int32')
+        angle_degree = self.dataset.states_from_utm(inst_token)['heading'] / np.pi * 180
+
+        # Firstly crop a larger box which contains all rotations of the actual window
+        outer_size = np.ceil(size * np.sqrt(2))
+        outer_crop_box = (center[0]-outer_size, center[1]-outer_size, center[0]+outer_size, center[1]+outer_size)
+        
+        # Rotate the larger box and crop the desired window size
+        inner_crop_box = (outer_size-size, outer_size-size, outer_size+size, outer_size+size)
+
+        img = Image.fromarray(img_array, 'RGB').crop(outer_crop_box).rotate(angle_degree).crop(inner_crop_box).transpose(Image.FLIP_TOP_BOTTOM)
 
         img.show()

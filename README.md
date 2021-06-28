@@ -1,7 +1,7 @@
 # ParkingDataset
 Parking Dataset by MPC Lab
 
-### Creating JSON files
+### Creating JSON files from XML or CSV
 
 1. Download the XML and MOV files for a scene. They should have the same base filename (e.g. `DJI_0001.csv` and `DJI_0001.MOV`) and be in the same directory. The following assumes that they are in a subdirectory `data/`.
 
@@ -30,3 +30,8 @@ The files created will be:
 - `data/DJI_0001_agents.json`
 - `data/DJI_0001_instances.json`
 - `data/DJI_0001_obstacles.json`
+
+### Instructions for using JSON data
+
+1. `tutorial.ipynb` explains the structure of the dataset
+2. `visualization.ipynb` demonstrates the dataset by visualizing it with either matplotlib or PIL

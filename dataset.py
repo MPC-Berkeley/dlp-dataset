@@ -95,9 +95,11 @@ class Dataset:
         """
         convert coordinates from utm to local
         coords: an array-like variable with length >=2, and the first two entry are x, y coordinates
-        The function will only chaneg the first two, and keep the data type and the rest of entries unchanged
+        The function will only chaneg the first two, and keep the rest of entries unchanged.
+        
+        Return: a np-array
         """
-        result = coords.copy()
+        result = np.array(coords)
         result[0] = ORIGIN['x'] - coords[0]
         result[1] = ORIGIN['y'] - coords[1]
         return result
