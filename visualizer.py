@@ -182,6 +182,12 @@ class SemanticVisualizer(Visualizer):
         self.h = int(MAP_SIZE['y'] / self.res)
         self.w = int(MAP_SIZE['x'] / self.res)
 
+        # Shrink the parking spaces a little bit
+        for name in ['top_left_x', 'btm_left_x', 'btm_left_y', 'btm_right_y']:
+            self.parking_spaces[name] -= self.spot_margin
+        for name in ['top_right_x', 'btm_right_x', 'top_left_y', 'top_right_y']:
+            self.parking_spaces[name] += self.spot_margin
+
     def plot_obstacles(self, scene_token):
         """
         plot static obstacles in this scene
@@ -247,12 +253,6 @@ class SemanticVisualizer(Visualizer):
         img_array = np.zeros((self.h, self.w), dtype=np.uint8)
         img = Image.fromarray(img_array)
         draw = ImageDraw.Draw(img)
-
-        # Shrink the parking spaces a little bit
-        for name in ['top_left_x', 'btm_left_x', 'btm_left_y', 'btm_right_y']:
-            self.parking_spaces[name] -= self.spot_margin
-        for name in ['top_right_x', 'btm_right_x', 'top_left_y', 'top_right_y']:
-            self.parking_spaces[name] += self.spot_margin
 
         for _, p in self.parking_spaces.iterrows():
             p_coords_ground = self._from_utm_list(p[2:10].to_numpy().reshape((4, 2)))
