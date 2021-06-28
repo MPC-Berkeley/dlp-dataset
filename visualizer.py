@@ -1,8 +1,10 @@
 import numpy as np
+from numpy.lib.type_check import imag
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from PIL import Image
+from PIL import ImageDraw
 
 from dataset import Dataset
 
@@ -164,8 +166,118 @@ class Visualizer():
         ax.set_ylim(0, MAP_SIZE['y'])
         plt.show()
     
-    def plot_agent_trace(self, agent_token):
+class SemanticVisualizer(Visualizer):
+    """
+    Plot the frame as semantic images
+    """
+    def __init__(self, dataset, spot_margin=0.3, resolution=0.1):
         """
-        plot the trace of an agent's state
+        instantiate the semantic visualizer
         """
-        pass
+        super().__init__(dataset)
+        
+        self.spot_margin = spot_margin
+
+        self.res = resolution
+        self.h = int(MAP_SIZE['y'] / self.res)
+        self.w = int(MAP_SIZE['x'] / self.res)
+
+    def plot_obstacles(self, scene_token):
+        """
+        plot static obstacles in this scene
+        """
+        # Base image
+        img_array = np.zeros((self.h, self.w), dtype=np.uint8)
+        img = Image.fromarray(img_array)
+        draw = ImageDraw.Draw(img)
+
+        scene = self.dataset.get('scene', scene_token)
+        for obstacle_token in scene['obstacles']:
+            obstacle = self.dataset.get('obstacle', obstacle_token)
+            corners_ground = self._get_corners(self._from_utm(obstacle['coords']), obstacle['size'], obstacle['heading'])
+            corners_pixel = (corners_ground / self.res).astype('int32')
+
+            draw.polygon([tuple(p) for p in corners_pixel], fill=255)
+
+        return np.asarray(img)
+
+    def plot_agents(self, frame_token):
+        """
+        plot all moving agents at this frame
+        """
+        # Base image
+        img_array = np.zeros((self.h, self.w), dtype=np.uint8)
+        img = Image.fromarray(img_array)
+        draw = ImageDraw.Draw(img)
+
+        frame = self.dataset.get('frame', frame_token)
+        # Plot instances
+        for inst_token in frame['instances']:
+            instance = self.dataset.get('instance', inst_token)
+            agent = self.dataset.get('agent', instance['agent_token'])
+            if agent['type'] not in {'Pedestrian', 'Undefined'}:
+                corners_ground = self._get_corners(self._from_utm(instance['coords']), agent['size'], instance['heading'])
+                corners_pixel = (corners_ground / self.res).astype('int32')
+
+                draw.polygon([tuple(p) for p in corners_pixel], fill=255)
+
+        return np.asarray(img)
+
+    def spot_available(self, current_img_array, center, size):
+        """
+        detect whether a certain spot on the map is occupied or not by checking the pixel value
+        current_img_array: the image array after plotting static obstacles and moving agents in channel 0 and 1
+        center: center location (pixel) of the spot
+        size: the size of the square window for occupancy detection
+
+        return: True if empty, false if occupied
+        """
+        sum = 0
+        for x in range(int(center[0]-size/2), int(center[0]+size/2)):
+            for y in range(int(center[1]-size/2), int(center[1]+size/2)):
+                sum += current_img_array[y, x, 0] + current_img_array[y, x, 1]
+        
+        return sum == 0
+
+    def plot_spots(self, current_img_array):
+        """
+        plot empty spots
+        """
+        # Base image
+        img_array = np.zeros((self.h, self.w), dtype=np.uint8)
+        img = Image.fromarray(img_array)
+        draw = ImageDraw.Draw(img)
+
+        # Shrink the parking spaces a little bit
+        for name in ['top_left_x', 'btm_left_x', 'btm_left_y', 'btm_right_y']:
+            self.parking_spaces[name] -= self.spot_margin
+        for name in ['top_right_x', 'btm_right_x', 'top_left_y', 'top_right_y']:
+            self.parking_spaces[name] += self.spot_margin
+
+        for _, p in self.parking_spaces.iterrows():
+            p_coords_ground = self._from_utm_list(p[2:10].to_numpy().reshape((4, 2)))
+            p_coords_pixel = (np.array(p_coords_ground) / self.res).astype('int32')
+            
+            # Detect whether this spot is occupied or not
+            # Only plot the spot if it is empty
+            center = np.average(p_coords_pixel, axis=0).astype('int32')
+            if self.spot_available(current_img_array, center, size=16):
+                draw.polygon([tuple(p) for p in p_coords_pixel], fill=255)
+
+        return np.asarray(img)
+
+    def plot_frame(self, frame_token):
+        """
+        plot frame as a semantic image
+        """
+        img_array = np.zeros((self.h, self.w, 3), dtype=np.uint8)
+
+        frame = self.dataset.get('frame', frame_token)
+
+        img_array[:, :, 0] = self.plot_agents(frame_token)
+        img_array[:, :, 1] = self.plot_obstacles(frame['scene_token'])
+        img_array[:, :, 2] = self.plot_spots(img_array)
+
+        img = Image.fromarray(img_array, 'RGB').transpose(Image.FLIP_TOP_BOTTOM)
+
+        img.show()
