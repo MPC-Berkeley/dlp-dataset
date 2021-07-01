@@ -1,3 +1,4 @@
+from argparse import REMAINDER
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -126,7 +127,7 @@ class Visualizer():
         ax.set_ylim(0, MAP_SIZE['y'])
         plt.show()
 
-    def plot_instance(self, inst_token):
+    def highlight_instance(self, inst_token):
         """
         emphasize a certain instance in a frame
         """
@@ -187,72 +188,109 @@ class SemanticVisualizer(Visualizer):
         for name in ['top_right_x', 'btm_right_x', 'top_left_y', 'top_right_y']:
             self.parking_spaces[name] += self.spot_margin
 
-    def plot_obstacles(self, scene_token):
+        # Load the base map with drivable region
+        self.base_map = Image.open('base_map.png').convert('RGB').resize((self.w, self.h)).transpose(Image.FLIP_TOP_BOTTOM)
+
+        self.color = {'obstacle': (0, 0, 255),
+                      'spot': (0, 255, 0),
+                      'agent': (255, 255, 0),
+                      'ego': (255, 0, 0)}
+
+    def _color_transition(self, max_color, steps):
+        """
+        generate colors to plot the state history of agents
+
+        max_color: 3-element tuple with r,g,b value. This is the color to plot the current state
+        steps: the number of fading color to generate
+        """
+        # If we don't actually need the color band, return the max color directly
+        if steps == 0:
+            return [max_color]
+
+        min_color = (int(max_color[0]/2), int(max_color[1]/2), int(max_color[2]/2))
+
+        color_band = [min_color]
+
+        for i in range(1, steps):
+            r = int(min_color[0] + i * (max_color[0] - min_color[0]) / 2 / steps)
+            g = int(min_color[1] + i * (max_color[1] - min_color[1]) / 2 / steps)
+            b = int(min_color[2] + i * (max_color[2] - min_color[2]) / 2 / steps)
+            color_band.append((r,g,b))
+
+        color_band.append(max_color)
+
+        return color_band
+
+    def plot_obstacles(self, draw, fill, scene_token):
         """
         plot static obstacles in this scene
         """
-        # Base image
-        img_array = np.zeros((self.h, self.w), dtype=np.uint8)
-        img = Image.fromarray(img_array)
-        draw = ImageDraw.Draw(img)
-
         scene = self.dataset.get('scene', scene_token)
+
         for obstacle_token in scene['obstacles']:
             obstacle = self.dataset.get('obstacle', obstacle_token)
             corners_ground = self._get_corners(self._from_utm(obstacle['coords']), obstacle['size'], obstacle['heading'])
             corners_pixel = (corners_ground / self.res).astype('int32')
 
-            draw.polygon([tuple(p) for p in corners_pixel], fill=255)
+            draw.polygon([tuple(p) for p in corners_pixel], fill=fill)
 
-        return np.asarray(img)
-
-    def plot_agents(self, frame_token):
+    def plot_instance(self, draw, fill, instance):
         """
-        plot all moving agents at this frame
+        plot a single instance at a single frame
         """
-        # Base image
-        img_array = np.zeros((self.h, self.w), dtype=np.uint8)
-        img = Image.fromarray(img_array)
-        draw = ImageDraw.Draw(img)
+        agent = self.dataset.get('agent', instance['agent_token'])
 
+        if agent['type'] not in {'Pedestrian', 'Undefined'}:
+            corners_ground = self._get_corners(self._from_utm(instance['coords']), agent['size'], instance['heading'])
+            corners_pixel = (corners_ground / self.res).astype('int32')
+
+            draw.polygon([tuple(p) for p in corners_pixel], fill=fill)
+
+    def plot_agents(self, draw, fill, frame_token, steps, stride):
+        """
+        plot all moving agents and their history as fading rectangles
+
+        steps: the number history steps to plot. If no history is desired, set the steps = 0 and stride = any value.
+        stride: the stride when getting the history. stride = 1 means plot the consecutive frames. stride = 2 means plot one in every 2 frames
+        """
         frame = self.dataset.get('frame', frame_token)
-        # Plot instances
+
+        color_band = self._color_transition(fill, steps)
+
+        # Plot
         for inst_token in frame['instances']:
-            instance = self.dataset.get('instance', inst_token)
-            agent = self.dataset.get('agent', instance['agent_token'])
-            if agent['type'] not in {'Pedestrian', 'Undefined'}:
-                corners_ground = self._get_corners(self._from_utm(instance['coords']), agent['size'], instance['heading'])
-                corners_pixel = (corners_ground / self.res).astype('int32')
+            instance_timeline = self.dataset.get_agent_past(inst_token, timesteps=steps*stride)
+            agent = self.dataset.get('agent', instance_timeline[0]['agent_token'])
 
-                draw.polygon([tuple(p) for p in corners_pixel], fill=255)
+            # History configuration
+            for idx_step in range(steps):
+                idx_history = idx_step * stride + 1
+                instance = instance_timeline[idx_history]
+                self.plot_instance(draw=draw, fill=color_band[idx_step], instance=instance)
 
-        return np.asarray(img)
+            # Current configuration
+            instance = instance_timeline[-1]
+            self.plot_instance(draw=draw, fill=color_band[-1], instance=instance)
 
-    def spot_available(self, current_img_array, center, size):
+    def spot_available(self, occupy_mask, center, size):
         """
         detect whether a certain spot on the map is occupied or not by checking the pixel value
-        current_img_array: the image array after plotting static obstacles and moving agents in channel 0 and 1
         center: center location (pixel) of the spot
         size: the size of the square window for occupancy detection
 
         return: True if empty, false if occupied
         """
         sum = 0
-        for x in range(int(center[0]-size/2), int(center[0]+size/2)):
-            for y in range(int(center[1]-size/2), int(center[1]+size/2)):
-                sum += current_img_array[y, x, 0] + current_img_array[y, x, 1]
+        for x in range(center[0]-size, center[0]+size):
+            for y in range(center[1]-size, center[1]+size):
+                sum += occupy_mask.getpixel((x, y))
         
         return sum == 0
 
-    def plot_spots(self, current_img_array):
+    def plot_spots(self, occupy_mask, draw, fill):
         """
         plot empty spots
         """
-        # Base image
-        img_array = np.zeros((self.h, self.w), dtype=np.uint8)
-        img = Image.fromarray(img_array)
-        draw = ImageDraw.Draw(img)
-
         for _, p in self.parking_spaces.iterrows():
             p_coords_ground = self._from_utm_list(p[2:10].to_numpy().reshape((4, 2)))
             p_coords_pixel = (np.array(p_coords_ground) / self.res).astype('int32')
@@ -260,40 +298,40 @@ class SemanticVisualizer(Visualizer):
             # Detect whether this spot is occupied or not
             # Only plot the spot if it is empty
             center = np.average(p_coords_pixel, axis=0).astype('int32')
-            if self.spot_available(current_img_array, center, size=16):
-                draw.polygon([tuple(p) for p in p_coords_pixel], fill=255)
+            if self.spot_available(occupy_mask, center, size=8):
+                draw.polygon([tuple(p) for p in p_coords_pixel], fill=fill)
 
-        return np.asarray(img)
-
-    def plot_frame(self, frame_token):
+    def plot_frame(self, frame_token, steps, stride):
         """
         plot frame as a semantic image
         """
-        img_array = np.zeros((self.h, self.w, 3), dtype=np.uint8)
 
         frame = self.dataset.get('frame', frame_token)
 
-        img_array[:, :, 0] = self.plot_agents(frame_token)
-        img_array[:, :, 1] = self.plot_obstacles(frame['scene_token'])
-        img_array[:, :, 2] = self.plot_spots(img_array)
+        # Create the binary mask for all moving objects on the map -- static obstacles and moving agents
+        occupy_mask = Image.new(mode='1', size=(self.w, self.h))
+        mask_draw = ImageDraw.Draw(occupy_mask)
 
-        img = Image.fromarray(img_array, 'RGB').transpose(Image.FLIP_TOP_BOTTOM)
+        # Firstly register obstacles and agents on the binary mask
+        self.plot_obstacles(draw=mask_draw, fill=1, scene_token=frame['scene_token'])
+        self.plot_agents(draw=mask_draw, fill=1, frame_token=frame_token, steps=0, stride=0)
 
-        img.show()
+        img_frame = self.base_map.copy()
+        img_draw = ImageDraw.Draw(img_frame)
 
-    def plot_instance_local(self, inst_token, size=100):
+        # Then plot everything on the main img
+        self.plot_spots(occupy_mask=occupy_mask, draw=img_draw, fill=self.color['spot'])
+        self.plot_obstacles(draw=img_draw, fill=self.color['obstacle'], scene_token=frame['scene_token'])
+        self.plot_agents(draw=img_draw, fill=self.color['agent'], frame_token=frame_token, steps=steps, stride=stride)
+
+        return img_frame
+
+    def inst_centric(self, img_frame, inst_token, size=100):
         """
-        plot the local region around an instance. The ego instance is always pointing towards the west
+        crop the local region around an instance. The ego instance is always pointing towards the west
         size: the size of the instance-centric crop, in pixel units
         """
         instance = self.dataset.get('instance', inst_token)
-        frame = self.dataset.get('frame', instance['frame_token'])
-
-        # Same as plotting the frame
-        img_array = np.zeros((self.h, self.w, 3), dtype=np.uint8)
-        img_array[:, :, 0] = self.plot_agents(instance['frame_token'])
-        img_array[:, :, 1] = self.plot_obstacles(frame['scene_token'])
-        img_array[:, :, 2] = self.plot_spots(img_array)
 
         # The location of the instance in pixel coordinates, and the angle in degrees
         center = (self.dataset.states_from_utm(inst_token)['coords'] / self.res).astype('int32')
@@ -306,6 +344,6 @@ class SemanticVisualizer(Visualizer):
         # Rotate the larger box and crop the desired window size
         inner_crop_box = (outer_size-size, outer_size-size, outer_size+size, outer_size+size)
 
-        img = Image.fromarray(img_array, 'RGB').crop(outer_crop_box).rotate(angle_degree).crop(inner_crop_box).transpose(Image.FLIP_TOP_BOTTOM)
+        img_instance = img_frame.crop(outer_crop_box).rotate(angle_degree).crop(inner_crop_box)
 
-        img.show()
+        return img_instance
