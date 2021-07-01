@@ -170,9 +170,14 @@ class SemanticVisualizer(Visualizer):
     """
     Plot the frame as semantic images
     """
-    def __init__(self, dataset, spot_margin=0.3, resolution=0.1):
+    def __init__(self, dataset, spot_margin=0.3, resolution=0.1, steps=5, stride=5):
         """
         instantiate the semantic visualizer
+        
+        spot_margin: the margin for seperating spot rectangles
+        resolution: distance (m) per pixel. resolution = 0.1 means 0.1m per pixel
+        steps: the number history steps to plot. If no history is desired, set the steps = 0 and stride = any value.
+        stride: the stride when getting the history. stride = 1 means plot the consecutive frames. stride = 2 means plot one in every 2 frames
         """
         super().__init__(dataset)
         
@@ -196,12 +201,14 @@ class SemanticVisualizer(Visualizer):
                       'agent': (255, 255, 0),
                       'ego': (255, 0, 0)}
 
+        self.steps = steps
+        self.stride = stride
+
     def _color_transition(self, max_color, steps):
         """
         generate colors to plot the state history of agents
 
         max_color: 3-element tuple with r,g,b value. This is the color to plot the current state
-        steps: the number of fading color to generate
         """
         # If we don't actually need the color band, return the max color directly
         if steps == 0:
@@ -245,13 +252,27 @@ class SemanticVisualizer(Visualizer):
             corners_pixel = (corners_ground / self.res).astype('int32')
 
             draw.polygon([tuple(p) for p in corners_pixel], fill=fill)
+    
+    def plot_instance_timeline(self, draw, color_band, instance_timeline, stride):
+        """
+        plot the timeline of an instance
+        """
+        len_history = len(instance_timeline) - 1
+        max_steps = np.floor( len_history / stride).astype(int)
+
+        # History configuration
+        for idx_step in range(max_steps, 0, -1):
+            idx_history = len_history - idx_step * stride
+            instance = instance_timeline[idx_history]
+            self.plot_instance(draw=draw, fill=color_band[-1-idx_step], instance=instance)
+
+        # Current configuration
+        instance = instance_timeline[-1]
+        self.plot_instance(draw=draw, fill=color_band[-1], instance=instance)
 
     def plot_agents(self, draw, fill, frame_token, steps, stride):
         """
         plot all moving agents and their history as fading rectangles
-
-        steps: the number history steps to plot. If no history is desired, set the steps = 0 and stride = any value.
-        stride: the stride when getting the history. stride = 1 means plot the consecutive frames. stride = 2 means plot one in every 2 frames
         """
         frame = self.dataset.get('frame', frame_token)
 
@@ -260,17 +281,7 @@ class SemanticVisualizer(Visualizer):
         # Plot
         for inst_token in frame['instances']:
             instance_timeline = self.dataset.get_agent_past(inst_token, timesteps=steps*stride)
-            agent = self.dataset.get('agent', instance_timeline[0]['agent_token'])
-
-            # History configuration
-            for idx_step in range(steps):
-                idx_history = idx_step * stride + 1
-                instance = instance_timeline[idx_history]
-                self.plot_instance(draw=draw, fill=color_band[idx_step], instance=instance)
-
-            # Current configuration
-            instance = instance_timeline[-1]
-            self.plot_instance(draw=draw, fill=color_band[-1], instance=instance)
+            self.plot_instance_timeline(draw, color_band, instance_timeline, stride)
 
     def spot_available(self, occupy_mask, center, size):
         """
@@ -301,7 +312,7 @@ class SemanticVisualizer(Visualizer):
             if self.spot_available(occupy_mask, center, size=8):
                 draw.polygon([tuple(p) for p in p_coords_pixel], fill=fill)
 
-    def plot_frame(self, frame_token, steps, stride):
+    def plot_frame(self, frame_token):
         """
         plot frame as a semantic image
         """
@@ -312,9 +323,9 @@ class SemanticVisualizer(Visualizer):
         occupy_mask = Image.new(mode='1', size=(self.w, self.h))
         mask_draw = ImageDraw.Draw(occupy_mask)
 
-        # Firstly register obstacles and agents on the binary mask
+        # Firstly register current obstacles and agents on the binary mask
         self.plot_obstacles(draw=mask_draw, fill=1, scene_token=frame['scene_token'])
-        self.plot_agents(draw=mask_draw, fill=1, frame_token=frame_token, steps=0, stride=0)
+        self.plot_agents(draw=mask_draw, fill=1, frame_token=frame_token, steps=0, stride=1)
 
         img_frame = self.base_map.copy()
         img_draw = ImageDraw.Draw(img_frame)
@@ -322,16 +333,25 @@ class SemanticVisualizer(Visualizer):
         # Then plot everything on the main img
         self.plot_spots(occupy_mask=occupy_mask, draw=img_draw, fill=self.color['spot'])
         self.plot_obstacles(draw=img_draw, fill=self.color['obstacle'], scene_token=frame['scene_token'])
-        self.plot_agents(draw=img_draw, fill=self.color['agent'], frame_token=frame_token, steps=steps, stride=stride)
+        self.plot_agents(draw=img_draw, fill=self.color['agent'], frame_token=frame_token, steps=self.steps, stride=self.stride)
 
         return img_frame
 
     def inst_centric(self, img_frame, inst_token, size=100):
         """
-        crop the local region around an instance. The ego instance is always pointing towards the west
+        crop the local region around an instance and replot it in ego color. The ego instance is always pointing towards the west
+
+        img_frame: the image of the SAME frame
         size: the size of the instance-centric crop, in pixel units
         """
-        instance = self.dataset.get('instance', inst_token)
+        img = img_frame.copy()
+        draw = ImageDraw.Draw(img)
+
+        # Replot this specific instance with the ego color
+        color_band = self._color_transition(self.color['ego'], self.steps)
+
+        instance_timeline = self.dataset.get_agent_past(inst_token, timesteps=self.steps*self.stride)
+        self.plot_instance_timeline(draw, color_band, instance_timeline, self.stride)
 
         # The location of the instance in pixel coordinates, and the angle in degrees
         center = (self.dataset.states_from_utm(inst_token)['coords'] / self.res).astype('int32')
@@ -344,6 +364,6 @@ class SemanticVisualizer(Visualizer):
         # Rotate the larger box and crop the desired window size
         inner_crop_box = (outer_size-size, outer_size-size, outer_size+size, outer_size+size)
 
-        img_instance = img_frame.crop(outer_crop_box).rotate(angle_degree).crop(inner_crop_box)
+        img_instance = img.crop(outer_crop_box).rotate(angle_degree).crop(inner_crop_box)
 
         return img_instance
