@@ -137,3 +137,39 @@ class Dataset:
             transformed_states['speed'] *= -1
 
         return transformed_states
+
+    def get_future_traj(self, inst_token, static_thres=0.02):
+        """
+        get the future trajectory of this agent, starting from the current frame
+        The static section at the begining and at the end will be truncated
+
+        static_thres: the threshold to determine whether it is static
+        
+        Output: T x 4 numpy array. (x, y, heading, speed). T is the time steps
+        """
+        traj = []
+
+        next_token = inst_token
+        while next_token:
+            states = self.states_from_utm(next_token)
+            traj.append(np.array([states['coords'][0], states['coords'][1], states['heading'], states['speed']]))
+
+            next_token = self.get('instance', next_token)['next']
+
+        # Truncate the starting part
+        idx_start = 0
+        while abs(traj[idx_start][3]) < static_thres:
+            idx_start += 1
+
+        # Truncate the ending part
+        idx_end = -1
+        while abs(traj[idx_end][3]) < static_thres:
+            idx_end -= 1
+
+        print('The original length of traj: %d, idx_start = %d, idx_end = %d' % (len(traj), idx_start, len(traj)+idx_end))
+
+        return np.array(traj[idx_start:idx_end])
+
+
+
+        
