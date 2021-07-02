@@ -5,6 +5,8 @@ import matplotlib.patches as patches
 from PIL import Image
 from PIL import ImageDraw
 
+from dataset import Dataset
+
 import yaml
 from yaml.loader import SafeLoader
 
@@ -18,7 +20,7 @@ PARKING_AREAS = MAP_DATA['PARKING_AREAS']
 
 class Visualizer():
 
-    def __init__(self, dataset):
+    def __init__(self, dataset: Dataset):
         self.dataset = dataset
         self.parking_spaces = self._gen_spaces()
 
@@ -167,12 +169,13 @@ class SemanticVisualizer(Visualizer):
     """
     Plot the frame as semantic images
     """
-    def __init__(self, dataset, spot_margin=0.3, resolution=0.1, steps=5, stride=5):
+    def __init__(self, dataset: Dataset, spot_margin=0.3, resolution=0.1, inst_ctr_size=200, steps=5, stride=5):
         """
         instantiate the semantic visualizer
         
         spot_margin: the margin for seperating spot rectangles
         resolution: distance (m) per pixel. resolution = 0.1 means 0.1m per pixel
+        inst_ctr_size: the size of the instance-centric crop. in pixel units.
         steps: the number history steps to plot. If no history is desired, set the steps = 0 and stride = any value.
         stride: the stride when getting the history. stride = 1 means plot the consecutive frames. stride = 2 means plot one in every 2 frames
         """
@@ -183,6 +186,8 @@ class SemanticVisualizer(Visualizer):
         self.res = resolution
         self.h = int(MAP_SIZE['y'] / self.res)
         self.w = int(MAP_SIZE['x'] / self.res)
+
+        self.inst_ctr_size = inst_ctr_size
 
         # Shrink the parking spaces a little bit
         for name in ['top_left_x', 'btm_left_x', 'btm_left_y', 'btm_right_y']:
@@ -334,12 +339,11 @@ class SemanticVisualizer(Visualizer):
 
         return img_frame
 
-    def inst_centric(self, img_frame, inst_token, size=100):
+    def inst_centric(self, img_frame, inst_token):
         """
         crop the local region around an instance and replot it in ego color. The ego instance is always pointing towards the west
 
         img_frame: the image of the SAME frame
-        size: the size of the instance-centric crop, in pixel units
         """
         img = img_frame.copy()
         draw = ImageDraw.Draw(img)
@@ -355,11 +359,11 @@ class SemanticVisualizer(Visualizer):
         angle_degree = self.dataset.states_from_utm(inst_token)['heading'] / np.pi * 180
 
         # Firstly crop a larger box which contains all rotations of the actual window
-        outer_size = np.ceil(size * np.sqrt(2))
+        outer_size = np.ceil(self.inst_ctr_size * np.sqrt(2))
         outer_crop_box = (center[0]-outer_size, center[1]-outer_size, center[0]+outer_size, center[1]+outer_size)
         
         # Rotate the larger box and crop the desired window size
-        inner_crop_box = (outer_size-size, outer_size-size, outer_size+size, outer_size+size)
+        inner_crop_box = (outer_size-self.inst_ctr_size, outer_size-self.inst_ctr_size, outer_size+self.inst_ctr_size, outer_size+self.inst_ctr_size)
 
         img_instance = img.crop(outer_crop_box).rotate(angle_degree).crop(inner_crop_box)
 
