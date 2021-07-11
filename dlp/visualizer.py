@@ -4,14 +4,16 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from PIL import Image
 from PIL import ImageDraw
-
-from dataset import Dataset
+import os
 
 import yaml
 from yaml.loader import SafeLoader
 
+from dlp.dataset import Dataset
+
+_ROOT = os.path.abspath(os.path.dirname(__file__))
 # Load parking map
-with open('parking_map.yml') as f:
+with open(_ROOT + '/parking_map.yml') as f:
     MAP_DATA = yaml.load(f, Loader=SafeLoader)
 
 ORIGIN = MAP_DATA['ORIGIN']
@@ -198,7 +200,7 @@ class SemanticVisualizer(Visualizer):
             self.parking_spaces[name] += self.spot_margin
 
         # Load the base map with drivable region
-        self.base_map = Image.open('base_map.png').convert('RGB').resize((self.w, self.h)).transpose(Image.FLIP_TOP_BOTTOM)
+        self.base_map = Image.open(_ROOT + '/base_map.png').convert('RGB').resize((self.w, self.h)).transpose(Image.FLIP_TOP_BOTTOM)
 
         self.color = {'obstacle': (0, 0, 255),
                       'spot': (0, 255, 0),

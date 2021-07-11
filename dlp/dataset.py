@@ -1,11 +1,14 @@
 import json
 import numpy as np
+import os
 
 import yaml
 from yaml.loader import SafeLoader
 
+_ROOT = os.path.abspath(os.path.dirname(__file__))
+
 # Load parking map
-with open('parking_map.yml') as f:
+with open(_ROOT + '/parking_map.yml') as f:
     MAP_DATA = yaml.load(f, Loader=SafeLoader)
 
 ORIGIN = MAP_DATA['ORIGIN']
@@ -166,7 +169,7 @@ class Dataset:
         while abs(traj[idx_end][3]) < static_thres:
             idx_end -= 1
 
-        print('The original length of traj: %d, idx_start = %d, idx_end = %d' % (len(traj), idx_start, len(traj)+idx_end))
+        # print('The original length of traj: %d, idx_start = %d, idx_end = %d' % (len(traj), idx_start, len(traj)+idx_end))
 
         return np.array(traj[idx_start:idx_end])
 
