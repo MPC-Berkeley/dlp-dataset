@@ -19,6 +19,7 @@ with open(_ROOT + '/parking_map.yml') as f:
 ORIGIN = MAP_DATA['ORIGIN']
 MAP_SIZE = MAP_DATA['MAP_SIZE']
 PARKING_AREAS = MAP_DATA['PARKING_AREAS']
+WAYPOINTS = MAP_DATA['WAYPOINTS']
 
 class Visualizer():
 
@@ -86,6 +87,15 @@ class Visualizer():
                 
         return df
 
+    def plot_waypoints(self, ax):
+        """
+        plot the waypoints on the map as scatters
+        """
+        for _, segment in WAYPOINTS.items():
+            bounds = self._from_utm_list(segment['bounds'])
+            points = np.linspace(bounds[0], bounds[1], num=segment['nums'], endpoint=True)
+            ax.scatter(x=points[:, 0], y=points[:, 1], s=3, c='g')
+
     def plot_lines(self, ax):
         """
         plot parking lines
@@ -111,6 +121,9 @@ class Visualizer():
 
         # Plot parking lines
         self.plot_lines(ax)
+
+        # Plot waypoints
+        self.plot_waypoints(ax)
 
         # Plot static obstacles
         self.plot_obstacles(ax, frame['scene_token'])
