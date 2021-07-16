@@ -184,7 +184,7 @@ WAYPOINTS: {
         ],
         'nums': 4
     },
-    'ENT': { # entrance
+    'EXT': { # exit / entrance
         'bounds': [
             [747049.62, 3856769.79],
             [747049.62, 3856775.10]

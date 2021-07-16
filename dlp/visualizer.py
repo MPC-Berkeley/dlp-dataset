@@ -26,6 +26,7 @@ class Visualizer():
     def __init__(self, dataset: Dataset):
         self.dataset = dataset
         self.parking_spaces = self._gen_spaces()
+        self.waypoints = self._gen_waypoints()
 
         plt.rcParams['figure.dpi'] = 125
     
@@ -87,14 +88,30 @@ class Visualizer():
                 
         return df
 
-    def plot_waypoints(self, ax):
+    def _gen_waypoints(self):
+        """
+        generate waypoints based on yaml
+        """
+        waypoints = {}
+        for name, segment in WAYPOINTS.items():
+            bounds = self._from_utm_list(segment['bounds'])
+            points = np.linspace(bounds[0], bounds[1], num=segment['nums'], endpoint=True)
+
+            waypoints[name] = points
+
+        return waypoints
+
+    def plot_waypoints(self, ax = None):
         """
         plot the waypoints on the map as scatters
         """
-        for _, segment in WAYPOINTS.items():
-            bounds = self._from_utm_list(segment['bounds'])
-            points = np.linspace(bounds[0], bounds[1], num=segment['nums'], endpoint=True)
+        if ax is None:
+            _, ax = plt.subplots()
+
+        for _, points in self.waypoints.items():
             ax.scatter(x=points[:, 0], y=points[:, 1], s=3, c='g')
+
+        return ax
 
     def plot_lines(self, ax):
         """
@@ -115,15 +132,14 @@ class Visualizer():
             ax.add_patch(patches.Polygon(corners, linewidth=0))
 
 
-    def plot_frame(self, frame_token):
+    def plot_frame(self, frame_token, ax = None):
         frame = self.dataset.get('frame', frame_token)
-        fig, ax = plt.subplots()
+
+        if ax is None:
+            _, ax = plt.subplots()
 
         # Plot parking lines
         self.plot_lines(ax)
-
-        # Plot waypoints
-        self.plot_waypoints(ax)
 
         # Plot static obstacles
         self.plot_obstacles(ax, frame['scene_token'])
@@ -139,9 +155,10 @@ class Visualizer():
         ax.set_aspect('equal')
         ax.set_xlim(0, MAP_SIZE['x'])
         ax.set_ylim(0, MAP_SIZE['y'])
-        plt.show()
 
-    def highlight_instance(self, inst_token):
+        return ax
+
+    def highlight_instance(self, inst_token, ax = None):
         """
         emphasize a certain instance in a frame
         """
@@ -150,7 +167,8 @@ class Visualizer():
 
         print("The type of this instance is %s" % agent['type'])
 
-        fig, ax = plt.subplots()
+        if ax is None:
+            _, ax = plt.subplots()
 
         # Plot parking lines
         self.plot_lines(ax)
@@ -178,7 +196,8 @@ class Visualizer():
         ax.set_aspect('equal')
         ax.set_xlim(0, MAP_SIZE['x'])
         ax.set_ylim(0, MAP_SIZE['y'])
-        plt.show()
+
+        return ax
     
 class SemanticVisualizer(Visualizer):
     """
