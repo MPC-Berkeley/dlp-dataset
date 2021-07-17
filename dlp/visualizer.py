@@ -404,3 +404,64 @@ class SemanticVisualizer(Visualizer):
         img_instance = img.crop(outer_crop_box).rotate(angle_degree).crop(inner_crop_box)
 
         return img_instance
+
+    def _is_visible(self, current_state, target_state):
+        """
+        check whether the target state is visible inside the instance-centric crop
+
+        current_state: (x, y, heading, speed) of current instance state
+        target_state: (x, y, heading, speed) of the point to be tested
+        """
+        theta = current_state[2]
+        A = np.array([[ np.sin(theta), -np.cos(theta)], 
+                      [-np.sin(theta),  np.cos(theta)], 
+                      [ np.cos(theta),  np.sin(theta)], 
+                      [-np.cos(theta), -np.sin(theta)]])
+        b = self.sensing_limit * np.ones(4)
+
+        offset = target_state[0:2] - current_state[0:2]
+
+        return all( A @ offset < b)
+
+    def global_ground_to_local_pixel(self, current_state, target_state):
+        """
+        transform the target state from global ground coordinates to instance-centric local crop
+
+        current_state: numpy array (x, y, theta, velocity)
+        target_state: numpy array (x, y, ...)
+        """
+        current_theta = current_state[2]
+        R = np.array([[np.cos(-current_theta), -np.sin(-current_theta)], 
+                      [np.sin(-current_theta),  np.cos(-current_theta)]])
+
+        rotated_ground = R @ (target_state[:2] - current_state[:2])
+        translation = self.sensing_limit * np.ones(2)
+        translated_ground = rotated_ground + translation
+
+        return np.floor(translated_ground / self.res).astype('int32')
+
+    def local_pixel_to_global_ground(self, current_state, target_coords):
+        """
+        transform the target coordinate from pixel coordinate in the local inst-centric crop to global ground coordinates
+
+        Note: Accuracy depends on the resolution (self.res)
+
+        current_state: numpy array (x, y, theta, velocity)
+        target_coords: numpy array (x, y) in int pixel location
+        """
+        scaled_local = target_coords * self.res
+        translation = self.sensing_limit * np.ones(2)
+
+        translated_local = scaled_local - translation
+
+        current_theta = current_state[2]
+        R = np.array([[np.cos(current_theta), -np.sin(current_theta)], 
+                      [np.sin(current_theta),  np.cos(current_theta)]])
+
+        rotated_local = R @ translated_local
+
+        translated_global = rotated_local + current_state[:2]
+
+        return translated_global
+
+        
