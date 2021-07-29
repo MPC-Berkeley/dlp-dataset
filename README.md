@@ -46,7 +46,13 @@ from dlp.dataset import Dataset as DlpDataset
     ```
     python raw-data-processing/generate_tokens.py data/DJI_0001.csv
     ```
-    
+4. To create all json files with one-click:
+
+    Firstly `cd` into folder `./raw-data-processing/`, then run the bash file 
+    ```
+    bash generate_all.sh
+    ```
+
 The files created will be:
 - `data/DJI_0001_scene.json`
 - `data/DJI_0001_frames.json`
