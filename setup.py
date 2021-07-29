@@ -2,7 +2,7 @@ import setuptools
 
 setuptools.setup(
     name="dlp", 
-    version="1.0.0",
+    version="1.5.0",
     description='Vehicle parking dataset',
     author='Xu Shen, Michelle Pan',
     author_email='xu_shen@berkeley.edu',

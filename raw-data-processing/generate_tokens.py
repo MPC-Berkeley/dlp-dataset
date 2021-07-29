@@ -8,6 +8,8 @@ from tqdm import tqdm
 import pandas as pd
 import numpy as np
 
+ORIGIN = {'x': 747064, 'y': 3856846}
+
 def gen_token(key):
     return hashlib.sha1(key.encode('utf-8')).hexdigest()
 
@@ -29,23 +31,6 @@ def find_agents_obstacles(threshold=0.02):
             obstacle_ids.append(id)
 
     return agent_ids, obstacle_ids
-
-def get_mode(frame_id, agent_id, steps_to_check=50, threshold=0.02):
-    """
-    Determine the mode of an agent between 'parked' or 'moving' by looking at the speed profile
-
-    steps_to_check: number of instances to check forwardly and backwardly. size = 50 <-> 2s forward and 2s backward
-    threshold: the speed threshold for static / moving
-    """
-    agent_trace = df[df['id'] == agent_id]
-
-    max_frame_id = np.max(agent_trace['frame_id']).astype(int)
-    frames_to_check = np.arange(np.maximum(0, frame_id-steps_to_check), np.minimum(max_frame_id, frame_id+steps_to_check))
-
-    speed_profile = agent_trace[agent_trace['frame_id'].isin(frames_to_check)]['speed']
-
-    return 'moving' if np.max(speed_profile) > threshold else 'parked'
-
 
 def write_frames():
     frames = {}
@@ -102,11 +87,11 @@ def write_instances():
                 'instance_token': gen_token('{}_instance_{}_{}'.format(hash_base, frame_id, agent_id)),
                 'agent_token': gen_token('{}_agent_{}'.format(hash_base, agent_id)),
                 'frame_token': gen_token('{}_frame_{}'.format(hash_base, frame_id)),
-                'coords': [row['utm_x'], row['utm_y']],
-                'heading': row['utm_angle'],
+                'coords': [ORIGIN['x'] - row['utm_x'], ORIGIN['y'] - row['utm_y']],
+                'heading': row['utm_angle'] - np.pi,
                 'speed': row['speed'],
                 'acceleration': [row['lateral_acceleration'], row['tangential_acceleration']],
-                'mode': get_mode(frame_id, agent_id),
+                'mode': '',
                 'prev': '' if frame_id == min(frame_ids) else gen_token('{}_instance_{}_{}'.format(hash_base, frame_id - 1, agent_id)),
                 'next': '' if frame_id == max(frame_ids) else gen_token('{}_instance_{}_{}'.format(hash_base, frame_id + 1, agent_id))
             }
@@ -129,8 +114,8 @@ def write_obstacles():
             'scene_token': scene_token,
             'type': obstacle_trace['type'].iloc[0],
             'size': [obstacle_trace['length'].iloc[0], obstacle_trace['width'].iloc[0]],
-            'coords': [obstacle_trace['utm_x'].iloc[0], obstacle_trace['utm_y'].iloc[0]],
-            'heading': obstacle_trace['utm_angle'].iloc[0],
+            'coords': [ORIGIN['x'] - obstacle_trace['utm_x'].iloc[0], ORIGIN['y'] - obstacle_trace['utm_y'].iloc[0]],
+            'heading': obstacle_trace['utm_angle'].iloc[0] - np.pi,
         }
         obstacles[obstacle['obstacle_token']] = obstacle
 

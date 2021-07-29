@@ -11,7 +11,6 @@ _ROOT = os.path.abspath(os.path.dirname(__file__))
 with open(_ROOT + '/parking_map.yml') as f:
     MAP_DATA = yaml.load(f, Loader=SafeLoader)
 
-ORIGIN = MAP_DATA['ORIGIN']
 PARKING_AREAS = MAP_DATA['PARKING_AREAS']
 
 class Dataset:
@@ -94,36 +93,14 @@ class Dataset:
             
         return timeline
 
-    def coords_from_utm(self, coords):
+    def signed_speed(self, inst_token):
         """
-        convert coordinates from utm to local
-        coords: an array-like variable with length >=2, and the first two entry are x, y coordinates
-        The function will only chaneg the first two, and keep the rest of entries unchanged.
-        
-        Return: a np-array
-        """
-        result = np.array(coords)
-        result[0] = ORIGIN['x'] - coords[0]
-        result[1] = ORIGIN['y'] - coords[1]
-        return result
-
-    def states_from_utm(self, inst_token):
-        """
-        convert states of an instance from utm coordinates to local
+        determine the sign of the speed
         """
         instance = self.get('instance', inst_token)
-        # Offset the coordinates and heading
-        transformed_states = {
-            'coords': self.coords_from_utm(instance['coords']),
-            'heading': instance['heading'] - np.pi,
-            'speed': instance['speed'], 
-            'acceleration': instance['acceleration'],
-            'mode': instance['mode']
-        }
 
-        # Determine the sign of speed
-        heading_vector = np.array([np.cos(transformed_states['heading']), 
-                                   np.sin(transformed_states['heading'])])
+        heading_vector = np.array([np.cos(instance['heading']), 
+                                   np.sin(instance['heading'])])
 
         if instance['next']:
             next_inst = self.get('instance', instance['next'])
@@ -134,12 +111,12 @@ class Dataset:
             prev_inst = self.get('instance', instance['prev'])
         else:
             prev_inst = instance
-        motion_vector = np.array(self.coords_from_utm(next_inst['coords'])) - np.array(self.coords_from_utm(prev_inst['coords']))
+        motion_vector = np.array(next_inst['coords']) - np.array(prev_inst['coords'])
 
-        if heading_vector @ motion_vector < 0:
-            transformed_states['speed'] *= -1
-
-        return transformed_states
+        if heading_vector @ motion_vector > 0:
+            return instance['speed']
+        else:
+            return - instance['speed']
 
     def get_future_traj(self, inst_token, static_thres=0.02):
         """
@@ -154,24 +131,35 @@ class Dataset:
 
         next_token = inst_token
         while next_token:
-            states = self.states_from_utm(next_token)
-            traj.append(np.array([states['coords'][0], states['coords'][1], states['heading'], states['speed']]))
+            instance = self.get('instance', next_token)
+            signed_speed = self.signed_speed(next_token)
+            traj.append(np.array([instance['coords'][0], instance['coords'][1], instance['heading'], signed_speed]))
 
-            next_token = self.get('instance', next_token)['next']
+            next_token = instance['next']
 
-        # Truncate the starting part
+        last_idx = len(traj) - 1
+
+        # Find the first non-static index
         idx_start = 0
-        while abs(traj[idx_start][3]) < static_thres:
-            idx_start += 1
+        while idx_start < last_idx:
+            if abs(traj[idx_start][3]) < static_thres:
+                idx_start += 1
+            else:
+                break
 
-        # Truncate the ending part
-        idx_end = -1
-        while abs(traj[idx_end][3]) < static_thres:
-            idx_end -= 1
+        # Find the last non-static index
+        idx_end = last_idx
+        while idx_end > 0:
+            if abs(traj[idx_end][3]) < static_thres:
+                idx_end -= 1
+            else:
+                break
 
-        # print('The original length of traj: %d, idx_start = %d, idx_end = %d' % (len(traj), idx_start, len(traj)+idx_end))
-
-        return np.array(traj[idx_start:idx_end])
+        if idx_end > idx_start:
+            return np.array(traj[idx_start:idx_end])
+        else:
+            # If all indices are static, only return the current time step
+            return traj[0].reshape((-1, 4))
 
 
 

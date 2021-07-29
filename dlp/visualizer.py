@@ -16,7 +16,6 @@ _ROOT = os.path.abspath(os.path.dirname(__file__))
 with open(_ROOT + '/parking_map.yml') as f:
     MAP_DATA = yaml.load(f, Loader=SafeLoader)
 
-ORIGIN = MAP_DATA['ORIGIN']
 MAP_SIZE = MAP_DATA['MAP_SIZE']
 PARKING_AREAS = MAP_DATA['PARKING_AREAS']
 WAYPOINTS = MAP_DATA['WAYPOINTS']
@@ -41,12 +40,6 @@ class Visualizer():
 
         df.columns = ['id', 'area', 'top_left_x', 'top_left_y', 'top_right_x', 'top_right_y', 'btm_right_x', 'btm_right_y', 'btm_left_x', 'btm_left_y']
         return df
-
-    def _from_utm(self, coords):
-        return ORIGIN['x'] - coords[0], ORIGIN['y'] - coords[1]
-
-    def _from_utm_list(self, coords):
-        return list(map(lambda c: list(self._from_utm(c)), coords))
 
     def _get_corners(self, center, dims, angle):
         length, width = dims
@@ -94,7 +87,7 @@ class Visualizer():
         """
         waypoints = {}
         for name, segment in WAYPOINTS.items():
-            bounds = self._from_utm_list(segment['bounds'])
+            bounds = segment['bounds']
             points = np.linspace(bounds[0], bounds[1], num=segment['nums'], endpoint=True)
 
             waypoints[name] = points
@@ -118,7 +111,7 @@ class Visualizer():
         plot parking lines
         """
         for _, p in self.parking_spaces.iterrows():
-            p_coords = self._from_utm_list(p[2:10].to_numpy().reshape((4, 2)))
+            p_coords = p[2:10].to_numpy().reshape((4, 2))
             ax.add_patch(patches.Polygon(np.array(p_coords), lw=0.5, ls='--', fill=False, color='#a0a0a0')) # c7def0
 
     def plot_obstacles(self, ax, scene_token):
@@ -128,7 +121,7 @@ class Visualizer():
         scene = self.dataset.get('scene', scene_token)
         for obstacle_token in scene['obstacles']:
             obstacle = self.dataset.get('obstacle', obstacle_token)
-            corners = self._get_corners(self._from_utm(obstacle['coords']), obstacle['size'], obstacle['heading'])
+            corners = self._get_corners(obstacle['coords'], obstacle['size'], obstacle['heading'])
             ax.add_patch(patches.Polygon(corners, linewidth=0))
 
 
@@ -149,7 +142,7 @@ class Visualizer():
             instance = self.dataset.get('instance', inst_token)
             agent = self.dataset.get('agent', instance['agent_token'])
             if agent['type'] not in {'Pedestrian', 'Undefined'}:
-                corners = self._get_corners(self._from_utm(instance['coords']), agent['size'], instance['heading'])
+                corners = self._get_corners(instance['coords'], agent['size'], instance['heading'])
                 ax.add_patch(patches.Polygon(corners, linewidth=0, fill=True, color='orange'))
 
         ax.set_aspect('equal')
@@ -178,7 +171,7 @@ class Visualizer():
         
         # Plot the specified instance
         if agent['type'] not in {'Pedestrian', 'Undefined'}:
-            corners = self._get_corners(self._from_utm(instance['coords']), agent['size'], instance['heading'])
+            corners = self._get_corners(instance['coords'], agent['size'], instance['heading'])
             ax.add_patch(patches.Polygon(corners, linewidth=0, fill=True, color='red'))
 
         # Plot other instances
@@ -190,7 +183,7 @@ class Visualizer():
             _instance = self.dataset.get('instance', _inst_token)
             _agent = self.dataset.get('agent', _instance['agent_token'])
             if _agent['type'] not in {'Pedestrian', 'Undefined'}:
-                corners = self._get_corners(self._from_utm(_instance['coords']), _agent['size'], _instance['heading'])
+                corners = self._get_corners(_instance['coords'], _agent['size'], _instance['heading'])
                 ax.add_patch(patches.Polygon(corners, linewidth=0, fill=True, color='orange'))
             
         ax.set_aspect('equal')
@@ -274,7 +267,7 @@ class SemanticVisualizer(Visualizer):
 
         for obstacle_token in scene['obstacles']:
             obstacle = self.dataset.get('obstacle', obstacle_token)
-            corners_ground = self._get_corners(self._from_utm(obstacle['coords']), obstacle['size'], obstacle['heading'])
+            corners_ground = self._get_corners(obstacle['coords'], obstacle['size'], obstacle['heading'])
             corners_pixel = (corners_ground / self.res).astype('int32')
 
             draw.polygon([tuple(p) for p in corners_pixel], fill=fill)
@@ -286,7 +279,7 @@ class SemanticVisualizer(Visualizer):
         agent = self.dataset.get('agent', instance['agent_token'])
 
         if agent['type'] not in {'Pedestrian', 'Undefined'}:
-            corners_ground = self._get_corners(self._from_utm(instance['coords']), agent['size'], instance['heading'])
+            corners_ground = self._get_corners(instance['coords'], agent['size'], instance['heading'])
             corners_pixel = (corners_ground / self.res).astype('int32')
 
             draw.polygon([tuple(p) for p in corners_pixel], fill=fill)
@@ -341,7 +334,7 @@ class SemanticVisualizer(Visualizer):
         plot empty spots
         """
         for _, p in self.parking_spaces.iterrows():
-            p_coords_ground = self._from_utm_list(p[2:10].to_numpy().reshape((4, 2)))
+            p_coords_ground = p[2:10].to_numpy().reshape((4, 2))
             p_coords_pixel = (np.array(p_coords_ground) / self.res).astype('int32')
             
             # Detect whether this spot is occupied or not
@@ -391,8 +384,9 @@ class SemanticVisualizer(Visualizer):
         self.plot_instance_timeline(draw, color_band, instance_timeline, self.stride)
 
         # The location of the instance in pixel coordinates, and the angle in degrees
-        center = (self.dataset.states_from_utm(inst_token)['coords'] / self.res).astype('int32')
-        angle_degree = self.dataset.states_from_utm(inst_token)['heading'] / np.pi * 180
+        instance = self.dataset.get('instance', inst_token)
+        center = (np.array(instance['coords']) / self.res).astype('int32')
+        angle_degree = instance['heading'] / np.pi * 180
 
         # Firstly crop a larger box which contains all rotations of the actual window
         outer_size = np.ceil(self.inst_ctr_size * np.sqrt(2))
