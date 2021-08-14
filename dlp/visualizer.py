@@ -220,9 +220,9 @@ class SemanticVisualizer(Visualizer):
 
         # Shrink the parking spaces a little bit
         for name in ['top_left_x', 'btm_left_x', 'btm_left_y', 'btm_right_y']:
-            self.parking_spaces[name] -= self.spot_margin
-        for name in ['top_right_x', 'btm_right_x', 'top_left_y', 'top_right_y']:
             self.parking_spaces[name] += self.spot_margin
+        for name in ['top_right_x', 'btm_right_x', 'top_left_y', 'top_right_y']:
+            self.parking_spaces[name] -= self.spot_margin
 
         # Load the base map with drivable region
         self.base_map = Image.open(_ROOT + '/base_map.png').convert('RGB').resize((self.w, self.h)).transpose(Image.FLIP_TOP_BOTTOM)

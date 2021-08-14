@@ -12,6 +12,7 @@ with open(_ROOT + '/parking_map.yml') as f:
     MAP_DATA = yaml.load(f, Loader=SafeLoader)
 
 PARKING_AREAS = MAP_DATA['PARKING_AREAS']
+ENTRANCE_AREA = {'min': np.array([5, 70]), 'max': np.array([25, 80])}
 
 class Dataset:
 
@@ -160,6 +161,94 @@ class Dataset:
         else:
             # If all indices are static, only return the current time step
             return traj[0].reshape((-1, 4))
+
+    def _inside_parking_area(self, inst_token):
+        """
+        check whether the instance is inside the parking area
+        """
+        instance = self.get('instance', inst_token)
+        coords = np.array(instance['coords'])
+
+        for _, area in PARKING_AREAS.items():
+            bounds = np.array(area['bounds'])
+            bounds_min = np.min(bounds, axis=0)
+            bounds_max = np.max(bounds, axis=0)
+
+            if all(coords > bounds_min) and all(coords < bounds_max):
+                return True
+
+        return False
+
+    def _ever_inside_parking_area(self, inst_token, direction):
+        """
+        check whether the instance is ever inside the parking area
+
+        direction: 'prev' - was inside the parking area before, 'next' - will go into the parking area
+        """
+        result = False
+        next_inst_token = inst_token
+
+        while next_inst_token and not result:
+            result = self._inside_parking_area(next_inst_token)
+
+            next_inst_token = self.get('instance', next_inst_token)[direction]
+
+        return result
+
+    def _will_leave_through_gate(self, inst_token):
+        """
+        check whether the instance will leave through the gate
+        """
+        result = False
+        next_inst_token = inst_token
+
+        while next_inst_token and not result:
+            instance = self.get('instance', next_inst_token)
+            coords = np.array(instance['coords'])
+            result = all(coords > ENTRANCE_AREA['min']) and all(coords < ENTRANCE_AREA['max']) and instance['heading'] > 0
+
+            next_inst_token = instance['next']
+
+        return result
+
+    def _has_entered_through_gate(self, inst_token):
+        """
+        check whether the instance has entered through entrance
+        """
+        result = False
+        next_inst_token = inst_token
+
+        while next_inst_token and not result:
+            instance = self.get('instance', next_inst_token)
+            coords = np.array(instance['coords'])
+            result = all(coords > ENTRANCE_AREA['min']) and all(coords < ENTRANCE_AREA['max']) and instance['heading'] < 0
+
+            next_inst_token = instance['prev']
+
+        return result
+        
+    def get_inst_mode(self, inst_token, static_thres=0.02):
+        """
+        Determine the mode of the vehicle among ["parked", "incoming", "outgoing", 'unclear']
+        """
+        instance = self.get('instance', inst_token)
+
+        if self._inside_parking_area(inst_token) and instance['speed']<static_thres:
+            mode = 'parked'
+        elif self._ever_inside_parking_area(inst_token, 'prev'):
+            mode = 'outgoing'
+        elif self._ever_inside_parking_area(inst_token, 'next'):
+            mode = 'incoming'
+        elif self._has_entered_through_gate(inst_token):
+            mode = 'incoming'
+        elif self._will_leave_through_gate(inst_token):
+            mode = 'outgoing'
+        else:
+            mode = 'unclear'
+
+        instance['mode'] = mode
+
+        return mode
 
 
 
