@@ -14,6 +14,6 @@ setuptools.setup(
         "pandas==1.2.4",
         "tqdm==4.60.0",
         "pyyaml==5.4.1",
-        "jupyterlab==3.0.16"
+        "jupyterlab==3.0.17"
     ]
 )
