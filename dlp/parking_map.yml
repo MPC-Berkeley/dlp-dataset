@@ -173,14 +173,14 @@ WAYPOINTS: {
             [3.07, 64.95],
             [3.07, 9.99]
         ],
-        'nums': 4
+        'nums': 10
     },
     'C2': { # 2nd column (right one)
         'bounds': [
             [80.18, 64.95],
             [80.18, 9.99]
         ],
-        'nums': 4
+        'nums': 10
     },
     'EXT': { # exit / entrance
         'bounds': [
