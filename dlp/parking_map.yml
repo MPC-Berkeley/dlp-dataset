@@ -154,19 +154,12 @@ WAYPOINTS: {
         ],
         'nums': 21
     },
-    'R4L': { # 4st row, left
-        'bounds': [
-            [75.16, 9.99],
-            [9.09, 9.99]
-        ],
-        'nums': 25
-    },
-    'R4R': { # 4st row, right
+    'R4': { # 4st row, right
         'bounds': [
             [137.12, 9.99],
-            [85.12, 9.99]
+            [9.09, 9.99]
         ],
-        'nums': 21
+        'nums': 47
     },
     'C1': { # 1st column (left one)
         'bounds': [
@@ -177,10 +170,10 @@ WAYPOINTS: {
     },
     'C2': { # 2nd column (right one)
         'bounds': [
-            [80.18, 64.95],
-            [80.18, 9.27]
+            [80.18, 60.72],
+            [80.18, 14.2]
         ],
-        'nums': 13
+        'nums': 11
     },
     'R1C1BR': { # bottom-right intersection of row 1 and column 1
         'bounds': [
@@ -219,8 +212,8 @@ WAYPOINTS: {
     },
     'R4C1TR': {
         'bounds': [
-            [4.6, 12.5],
-            [6.6, 11]
+            [4.6, 11.8],
+            [6.6, 10.5]
         ],
         'nums': 2
     },
@@ -315,11 +308,18 @@ WAYPOINTS: {
         ],
         'nums': 2
     },
-    'EXTT': {
+    'EXTL': { #lrft exit curve
         'bounds': [
             [11.88, 67],
-            [16.88, 67]
+            [14.38, 70.9]
         ],
         'nums': 2
-    }
+    },
+    'EXTR': { #right exit curve
+        'bounds': [
+            [16.88, 67],
+            [14.38, 70.9]
+        ],
+        'nums': 2
+    },
 }
