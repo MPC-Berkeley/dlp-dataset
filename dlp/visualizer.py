@@ -102,7 +102,7 @@ class Visualizer():
             _, ax = plt.subplots()
 
         for _, points in self.waypoints.items():
-            ax.scatter(x=points[:, 0], y=points[:, 1], s=3, c='g')
+            ax.scatter(x=points[:, 0], y=points[:, 1], s=2, c='g')
 
         return ax
 
@@ -124,10 +124,10 @@ class Visualizer():
             corners = self._get_corners(obstacle['coords'], obstacle['size'], obstacle['heading'])
             ax.add_patch(patches.Polygon(corners, linewidth=0))
 
-
-    def plot_frame(self, frame_token, ax = None):
-        frame = self.dataset.get('frame', frame_token)
-
+    def plot_scene(self, scene_token, ax = None):
+        """
+        plot lines and static obstacles in a specified scene
+        """
         if ax is None:
             _, ax = plt.subplots()
 
@@ -135,7 +135,17 @@ class Visualizer():
         self.plot_lines(ax)
 
         # Plot static obstacles
-        self.plot_obstacles(ax, frame['scene_token'])
+        self.plot_obstacles(ax, scene_token)
+
+
+    def plot_frame(self, frame_token, ax = None):
+        frame = self.dataset.get('frame', frame_token)
+
+        if ax is None:
+            _, ax = plt.subplots()
+
+        # Plot lines and static obstacles
+        self.plot_scene(scene_token=frame['scene_token'], ax=ax)
         
         # Plot instances
         for inst_token in frame['instances']:
@@ -163,11 +173,8 @@ class Visualizer():
         if ax is None:
             _, ax = plt.subplots()
 
-        # Plot parking lines
-        self.plot_lines(ax)
-
-        # Plot static obstacles
-        self.plot_obstacles(ax, agent['scene_token'])
+        # Plot lines and static obstacles
+        self.plot_scene(scene_token=agent['scene_token'], ax=ax)
         
         # Plot the specified instance
         if agent['type'] not in {'Pedestrian', 'Undefined'}:
