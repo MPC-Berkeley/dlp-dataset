@@ -137,6 +137,12 @@ class Visualizer():
         # Plot static obstacles
         self.plot_obstacles(ax, scene_token)
 
+        ax.set_aspect('equal')
+        ax.set_xlim(0, MAP_SIZE['x'])
+        ax.set_ylim(0, MAP_SIZE['y'])
+
+        return ax
+
 
     def plot_frame(self, frame_token, ax = None):
         frame = self.dataset.get('frame', frame_token)
