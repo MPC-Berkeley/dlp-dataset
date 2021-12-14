@@ -174,7 +174,7 @@ class Visualizer():
         instance = self.dataset.get('instance', inst_token)
         agent = self.dataset.get('agent', instance['agent_token'])
 
-        print("The type of this instance is %s" % agent['type'])
+        # print("The type of this instance is %s" % agent['type'])
 
         if ax is None:
             _, ax = plt.subplots()

@@ -53,6 +53,21 @@ class Dataset:
     def list_scenes(self):
         return list(self.scenes.keys())
 
+    def get_frame_at_time(self, scene_token, timestamp: float, tol=0.039):
+        """
+        timestamp: time (float) in sec
+        tol: typically this is the interval between frames
+        """
+        scene = self.get('scene', scene_token)
+        frame_token = scene['first_frame']
+        while frame_token:
+            frame = self.get('frame', frame_token)
+            if abs(frame['timestamp']-timestamp) < tol:
+                return frame
+            frame_token = frame['next']
+
+        assert frame_token!='', "Didn't find the frame at the specified time. It may exceeds the video length."
+
     def get_agent_instances(self, agent_token):
         agent_instances = []
         next_instance = self.agents[agent_token]['first_instance']
@@ -250,6 +265,23 @@ class Dataset:
 
         return mode
 
+    def get_inst_at_location(self, frame_token, coords, exclude_types={'Pedestrian', 'Undefined'}):
+        """
+        get the closet instance (with certain type) at a given location
+        coords: array-like with two entries [x, y]
+        exclude_types: the types that we don't want. The reason we exclude types is that the vehicles might have multiple types like 'Car', 'Bus', 'Truck'.
+        """
+        frame = self.get('frame', frame_token)
+        min_dist = np.inf
+        min_inst = None
+        for inst_token in frame['instances']:
+            instance = self.get('instance', inst_token)
+            agent = self.get('agent', instance['agent_token'])
+            if agent['type'] not in exclude_types:
+                x, y = instance['coords']
+                dist = (coords[0]-x)**2 + (coords[1]-y)**2
+                if dist < min_dist:
+                    min_dist = dist
+                    min_inst = instance
 
-
-        
+        return min_inst
