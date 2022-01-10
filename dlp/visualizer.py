@@ -102,7 +102,7 @@ class Visualizer():
             _, ax = plt.subplots()
 
         for _, points in self.waypoints.items():
-            ax.scatter(x=points[:, 0], y=points[:, 1], s=3, c='g')
+            ax.scatter(x=points[:, 0], y=points[:, 1], s=2, c='g')
 
         return ax
 
@@ -124,10 +124,10 @@ class Visualizer():
             corners = self._get_corners(obstacle['coords'], obstacle['size'], obstacle['heading'])
             ax.add_patch(patches.Polygon(corners, linewidth=0))
 
-
-    def plot_frame(self, frame_token, ax = None):
-        frame = self.dataset.get('frame', frame_token)
-
+    def plot_scene(self, scene_token, ax = None):
+        """
+        plot lines and static obstacles in a specified scene
+        """
         if ax is None:
             _, ax = plt.subplots()
 
@@ -135,7 +135,23 @@ class Visualizer():
         self.plot_lines(ax)
 
         # Plot static obstacles
-        self.plot_obstacles(ax, frame['scene_token'])
+        self.plot_obstacles(ax, scene_token)
+
+        ax.set_aspect('equal')
+        ax.set_xlim(0, MAP_SIZE['x'])
+        ax.set_ylim(0, MAP_SIZE['y'])
+
+        return ax
+
+
+    def plot_frame(self, frame_token, ax = None):
+        frame = self.dataset.get('frame', frame_token)
+
+        if ax is None:
+            _, ax = plt.subplots()
+
+        # Plot lines and static obstacles
+        self.plot_scene(scene_token=frame['scene_token'], ax=ax)
         
         # Plot instances
         for inst_token in frame['instances']:
@@ -158,16 +174,13 @@ class Visualizer():
         instance = self.dataset.get('instance', inst_token)
         agent = self.dataset.get('agent', instance['agent_token'])
 
-        print("The type of this instance is %s" % agent['type'])
+        # print("The type of this instance is %s" % agent['type'])
 
         if ax is None:
             _, ax = plt.subplots()
 
-        # Plot parking lines
-        self.plot_lines(ax)
-
-        # Plot static obstacles
-        self.plot_obstacles(ax, agent['scene_token'])
+        # Plot lines and static obstacles
+        self.plot_scene(scene_token=agent['scene_token'], ax=ax)
         
         # Plot the specified instance
         if agent['type'] not in {'Pedestrian', 'Undefined'}:
