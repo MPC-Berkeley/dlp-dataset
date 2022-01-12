@@ -114,10 +114,10 @@ PARKING_AREAS: {
 WAYPOINTS: {
     'R1L': { # 1st row, left
         'bounds': [
-            [75.16, 64.95],
+            [80.45, 64.95],
             [9.09, 64.95]
         ],
-        'nums': 25
+        'nums': 27
     },
     'R1R': { # 1st row, right
         'bounds': [
