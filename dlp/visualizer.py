@@ -27,6 +27,8 @@ class Visualizer():
         self.parking_spaces = self._gen_spaces()
         self.waypoints = self._gen_waypoints()
 
+        self.map_size = MAP_SIZE
+
         plt.rcParams['figure.dpi'] = 125
     
     def _gen_spaces(self):
