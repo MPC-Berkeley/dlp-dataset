@@ -8,7 +8,7 @@ setuptools.setup(
     author_email='xu_shen@berkeley.edu',
     packages=['dlp'],
     install_requires=[
-        "pillow==8.3.2",
+        "pillow==9.0.0",
         "matplotlib==3.4.1",
         "numpy==1.20.2",
         "pandas==1.2.4",
