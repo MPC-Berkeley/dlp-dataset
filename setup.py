@@ -10,7 +10,7 @@ setuptools.setup(
     install_requires=[
         "pillow==9.0.0",
         "matplotlib==3.4.1",
-        "numpy==1.20.2",
+        "numpy==1.21.0",
         "pandas==1.2.4",
         "tqdm==4.60.0",
         "pyyaml==5.4.1",
