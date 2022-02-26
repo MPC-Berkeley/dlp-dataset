@@ -154,12 +154,19 @@ WAYPOINTS: {
         ],
         'nums': 21
     },
-    'R4': { # 4st row, right
+    'R4L': {  # 4st row, left
         'bounds': [
-            [137.12, 9.99],
+            [75.16, 9.99],
             [9.09, 9.99]
         ],
-        'nums': 47
+        'nums': 25
+    },
+    'R4R': {  # 4st row, right
+        'bounds': [
+            [137.12, 9.99],
+            [85.12, 9.99]
+        ],
+        'nums': 21
     },
     'C1': { # 1st column (left one)
         'bounds': [
