@@ -1,3 +1,4 @@
+from typing import Tuple
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -358,7 +359,7 @@ class SemanticVisualizer(Visualizer):
             if self.spot_available(occupy_mask, center, size=8):
                 draw.polygon([tuple(p) for p in p_coords_pixel], fill=fill)
 
-    def plot_frame(self, frame_token):
+    def plot_frame(self, frame_token) -> Image:
         """
         plot frame as a semantic image
         """
@@ -383,11 +384,13 @@ class SemanticVisualizer(Visualizer):
 
         return img_frame
 
-    def inst_centric(self, img_frame, inst_token):
+    def inst_centric(self, img_frame: Image, inst_token, center_pose: np.ndarray=None):
         """
-        crop the local region around an instance and replot it in ego color. The ego instance is always pointing towards the west
+        crop the local region around a center pose and replot the instance in ego color. 
 
-        img_frame: the image of the SAME frame
+        img_frame: the image of the SAME frame with inst_token
+        inst_token: the instance to be highlighted
+        center_pose: None by default to use the pose of instance. But if given a numpy array of (x, y, heading) in global coordinates, will crop around it.
         """
         img = img_frame.copy()
         draw = ImageDraw.Draw(img)
@@ -399,9 +402,13 @@ class SemanticVisualizer(Visualizer):
         self.plot_instance_timeline(draw, color_band, instance_timeline, self.stride)
 
         # The location of the instance in pixel coordinates, and the angle in degrees
-        instance = self.dataset.get('instance', inst_token)
-        center = (np.array(instance['coords']) / self.res).astype('int32')
-        angle_degree = instance['heading'] / np.pi * 180
+        if center_pose is None:
+            instance = self.dataset.get('instance', inst_token)
+            center = (np.array(instance['coords']) / self.res).astype('int32')
+            angle_degree = instance['heading'] / np.pi * 180
+        else:
+            center = (center_pose[:2] / self.res).astype('int32')
+            angle_degree = center_pose[2] / np.pi * 180
 
         # Firstly crop a larger box which contains all rotations of the actual window
         outer_size = np.ceil(self.inst_ctr_size * np.sqrt(2))
@@ -413,6 +420,23 @@ class SemanticVisualizer(Visualizer):
         img_instance = img.crop(outer_crop_box).rotate(angle_degree).crop(inner_crop_box)
 
         return img_instance
+
+    def plot_traj(self, inst_centric_view: Image, center_pose: np.ndarray, traj: np.ndarray, color: Tuple[int], width: int):
+        """
+        plot trajectory onto instance centric view. CANNOT be used for the entire frame
+
+        center_pose: center ground pose (x, y, heading) of the instance centric view
+        traj: numpy array with shape (N, 2+) for (x, y, ...) coordinates
+        color: tuple of (R, G, B) value
+        width: int size for line width
+        """
+        img = inst_centric_view.copy()
+        draw = ImageDraw.Draw(img)
+        local_traj = [tuple(self.global_ground_to_local_pixel(current_state=center_pose, target_state=x)) for x in traj]
+
+        draw.line(local_traj, fill=color, width=width, joint="curve")
+
+        return img
 
     def _is_visible(self, current_state, target_state):
         """
@@ -436,8 +460,8 @@ class SemanticVisualizer(Visualizer):
         """
         transform the target state from global ground coordinates to instance-centric local crop
 
-        current_state: numpy array (x, y, theta, velocity)
-        target_state: numpy array (x, y, ...)
+        current_state: numpy array (x, y, theta, ...) in global coordinates
+        target_state: numpy array (x, y, ...) in global coordinates
         """
         current_theta = current_state[2]
         R = np.array([[np.cos(-current_theta), -np.sin(-current_theta)], 
@@ -455,8 +479,8 @@ class SemanticVisualizer(Visualizer):
 
         Note: Accuracy depends on the resolution (self.res)
 
-        current_state: numpy array (x, y, theta, velocity)
-        target_coords: numpy array (x, y) in int pixel location
+        current_state: numpy array (x, y, theta, ...) in global coordinates
+        target_coords: numpy array (x, y) in int pixel coordinates
         """
         scaled_local = target_coords * self.res
         translation = self.sensing_limit * np.ones(2)
