@@ -85,5 +85,5 @@ if __name__ == "__main__":
         """
         i += 1
         agents[i] = agent
-    with open('agent_data.pickle', 'wb') as fp:
+    with open('raw_agent_data.pickle', 'wb') as fp:
         pickle.dump(agents, fp)
