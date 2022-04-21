@@ -1,4 +1,5 @@
 import json
+from typing import Dict, List, Set
 import numpy as np
 import os
 
@@ -36,7 +37,14 @@ class Dataset:
             scene = json.load(f)
             self.scenes[scene['scene_token']] = scene
 
-    def get(self, obj_type, token):
+
+    def get(self, obj_type: str, token: str) -> Dict:
+        """
+        Get data object as a dictionary
+
+        `obj_type`: string, choose from ['frame', 'agent', 'instance', 'obstacle', 'scene']
+        `token`: the corresponding token
+        """
         assert obj_type in ['frame', 'agent', 'instance', 'obstacle', 'scene']
 
         if obj_type == 'frame':
@@ -50,13 +58,19 @@ class Dataset:
         elif obj_type == 'scene':
             return self.scenes[token]
         
-    def list_scenes(self):
+    def list_scenes(self) -> List[str]:
+        """
+        List the tokens of scenes loaded in the current dataset
+        """
         return list(self.scenes.keys())
 
-    def get_frame_at_time(self, scene_token, timestamp: float, tol=0.039):
+    def get_frame_at_time(self, scene_token: str, timestamp: float, tol=0.039):
         """
-        timestamp: time (float) in sec
-        tol: typically this is the interval between frames
+        Get the frame object at certain time
+
+        `scene_token`: The scene where the frame comes from
+        `timestamp`: time (float) in sec
+        `tol`: typically this is the interval between frames
         """
         scene = self.get('scene', scene_token)
         frame_token = scene['first_frame']
@@ -68,7 +82,12 @@ class Dataset:
 
         assert frame_token!='', "Didn't find the frame at the specified time. It may exceeds the video length."
 
-    def get_agent_instances(self, agent_token):
+    def get_agent_instances(self, agent_token: str) -> List[Dict]:
+        """
+        Return the list of instance objects for the specific agent
+
+        `agent_token`: Token of the agent
+        """
         agent_instances = []
         next_instance = self.agents[agent_token]['first_instance']
         while next_instance:
@@ -77,19 +96,43 @@ class Dataset:
             next_instance = inst['next']
         return agent_instances
 
-    def get_agent_future(self, instance_token, timesteps=5):
+    def get_agent_future(self, instance_token: str, timesteps: int=5):
+        """
+        Return a list of future instance objects for the same agent.
+
+        `instance_token`: The token of the current instance
+        `timesteps`: (int) Number of steps in the future. 
+        """
         return self._get_timeline('instance', 'next', instance_token, timesteps)
 
-    def get_agent_past(self, instance_token, timesteps=5):
+    def get_agent_past(self, instance_token: str, timesteps: int=5):
+        """
+        Return a list of past instance objects for the same agent.
+
+        `instance_token`: The token of the current instance
+        `timesteps`: (int) Number of steps in the past. 
+        """
         return self._get_timeline('instance', 'prev', instance_token, timesteps)
 
-    def get_future_frames(self, frame_token, timesteps=5):
+    def get_future_frames(self, frame_token: str, timesteps: int=5):
+        """
+        Return a list of future frame objects.
+
+        `frame_token`: The token of the current frame
+        `timesteps`: (int) Number of steps in the future. 
+        """
         return self._get_timeline('frame', 'next', frame_token, timesteps)
     
-    def get_past_frames(self, frame_token, timesteps=5):
+    def get_past_frames(self, frame_token: str, timesteps: int=5):
+        """
+        Return a list of past frame objects.
+
+        `frame_token`: The token of the current frame
+        `timesteps`: (int) Number of steps in the past. 
+        """
         return self._get_timeline('frame', 'prev', frame_token, timesteps)
 
-    def _get_timeline(self, obj_type, direction, token, timesteps):
+    def _get_timeline(self, obj_type, direction, token, timesteps) -> List[Dict]:
         if obj_type == 'frame':
             obj_dict = self.frames
         elif obj_type == 'instance':
@@ -109,9 +152,11 @@ class Dataset:
             
         return timeline
 
-    def signed_speed(self, inst_token):
+    def signed_speed(self, inst_token: str) -> float:
         """
-        determine the sign of the speed
+        Return the speed of the current instance with sign. Positive means it is moving forward, negative measn backward.
+
+        `inst_token`: The token of the current instance
         """
         instance = self.get('instance', inst_token)
 
@@ -134,12 +179,12 @@ class Dataset:
         else:
             return - instance['speed']
 
-    def get_future_traj(self, inst_token, static_thres=0.02):
+    def get_future_traj(self, inst_token: str, static_thres: float=0.02) -> np.ndarray:
         """
         get the future trajectory of this agent, starting from the current frame
         The static section at the begining and at the end will be truncated
 
-        static_thres: the threshold to determine whether it is static
+        `static_thres`: the threshold to determine whether it is static. Default is 0.02m/s
         
         Output: T x 4 numpy array. (x, y, heading, speed). T is the time steps
         """
@@ -177,7 +222,7 @@ class Dataset:
             # If all indices are static, only return the current time step
             return traj[0].reshape((-1, 4))
 
-    def _inside_parking_area(self, inst_token):
+    def _inside_parking_area(self, inst_token: str) -> bool:
         """
         check whether the instance is inside the parking area
         """
@@ -194,11 +239,11 @@ class Dataset:
 
         return False
 
-    def _ever_inside_parking_area(self, inst_token, direction):
+    def _ever_inside_parking_area(self, inst_token: str, direction: str):
         """
         check whether the instance is ever inside the parking area
 
-        direction: 'prev' - was inside the parking area before, 'next' - will go into the parking area
+        `direction`: 'prev' - was inside the parking area before, 'next' - will go into the parking area
         """
         result = False
         next_inst_token = inst_token
@@ -210,7 +255,7 @@ class Dataset:
 
         return result
 
-    def _will_leave_through_gate(self, inst_token):
+    def _will_leave_through_gate(self, inst_token: str):
         """
         check whether the instance will leave through the gate
         """
@@ -226,7 +271,7 @@ class Dataset:
 
         return result
 
-    def _has_entered_through_gate(self, inst_token):
+    def _has_entered_through_gate(self, inst_token: str):
         """
         check whether the instance has entered through entrance
         """
@@ -242,9 +287,9 @@ class Dataset:
 
         return result
         
-    def get_inst_mode(self, inst_token, static_thres=0.02):
+    def get_inst_mode(self, inst_token: str, static_thres=0.02) -> str:
         """
-        Determine the mode of the vehicle among ["parked", "incoming", "outgoing", 'unclear']
+        Determine the mode of the vehicle among ["parked", "incoming", "outgoing", 'unclear']. Return the mode as a string and also modify the instance object.
         """
         instance = self.get('instance', inst_token)
 
@@ -265,11 +310,11 @@ class Dataset:
 
         return mode
 
-    def get_inst_at_location(self, frame_token, coords, exclude_types={'Pedestrian', 'Undefined'}):
+    def get_inst_at_location(self, frame_token: str, coords: np.ndarray, exclude_types: Set[str]={'Pedestrian', 'Undefined'}) -> Dict:
         """
-        get the closet instance (with certain type) at a given location
-        coords: array-like with two entries [x, y]
-        exclude_types: the types that we don't want. The reason we exclude types is that the vehicles might have multiple types like 'Car', 'Bus', 'Truck'.
+        Return the closet instance object (with certain type) at a given location
+        `coords`: array-like with two entries [x, y]
+        `exclude_types`: the types that we don't want. The reason we exclude types is that the vehicles might have multiple types like 'Car', 'Bus', 'Truck'.
         """
         frame = self.get('frame', frame_token)
         min_dist = np.inf
