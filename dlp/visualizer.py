@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Dict, List, Set, Tuple, Union
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -99,7 +99,9 @@ class Visualizer():
 
     def plot_waypoints(self, ax = None):
         """
-        plot the waypoints on the map as scatters
+        plot the waypoints on the map as scatters and return the axis handle
+
+        `ax`: (Optional) The matplotlib axis handle. If left empty, will create a new axis
         """
         if ax is None:
             _, ax = plt.subplots()
@@ -109,36 +111,54 @@ class Visualizer():
 
         return ax
 
-    def plot_lines(self, ax):
+    def plot_lines(self, ax = None):
         """
-        plot parking lines
+        plot parking lines and return the axis handle. 
+
+        `ax`: The matplotlib axis handle. If left empty, will create a new axis
         """
+        if ax is None:
+            _, ax = plt.subplots()
+
         for _, p in self.parking_spaces.iterrows():
             p_coords = p[2:10].to_numpy().reshape((4, 2))
             ax.add_patch(patches.Polygon(np.array(p_coords), lw=0.5, ls='--', fill=False, color='#a0a0a0')) # c7def0
 
-    def plot_obstacles(self, ax, scene_token):
+        return ax
+
+    def plot_obstacles(self, scene_token, ax = None):
         """
-        plot static obstacles in this scene
+        plot static obstacles in this scene and return the axis handle
+
+        `scene_token`: The token of the scene
+        `ax`: (Optional) The matplotlib axis handle. If left empty, will create a new axis
         """
+        if ax is None:
+            _, ax = plt.subplots()
+        
         scene = self.dataset.get('scene', scene_token)
         for obstacle_token in scene['obstacles']:
             obstacle = self.dataset.get('obstacle', obstacle_token)
             corners = self._get_corners(obstacle['coords'], obstacle['size'], obstacle['heading'])
             ax.add_patch(patches.Polygon(corners, linewidth=0))
 
+        return ax
+
     def plot_scene(self, scene_token, ax = None):
         """
-        plot lines and static obstacles in a specified scene
+        plot lines and static obstacles in a specified scene and return the axis handle
+
+        `scene_token`: The token of the scene
+        `ax`: (Optional) The matplotlib axis handle. If left empty, will create a new axis
         """
         if ax is None:
             _, ax = plt.subplots()
 
         # Plot parking lines
-        self.plot_lines(ax)
+        ax = self.plot_lines(ax)
 
         # Plot static obstacles
-        self.plot_obstacles(ax, scene_token)
+        ax = self.plot_obstacles(scene_token, ax)
 
         ax.set_aspect('equal')
         ax.set_xlim(0, MAP_SIZE['x'])
@@ -147,20 +167,26 @@ class Visualizer():
         return ax
 
 
-    def plot_frame(self, frame_token, ax = None):
+    def plot_frame(self, frame_token, ax = None, exclude_types: Set[str]={'Pedestrian', 'Undefined'}):
+        """
+        plot a given frame and return the axis handle
+
+        `frame_token`: The token of the frame.
+        `ax`: (Optional) The matplotlib axis handle. If left empty, will create a new axis
+        """
         frame = self.dataset.get('frame', frame_token)
 
         if ax is None:
             _, ax = plt.subplots()
 
         # Plot lines and static obstacles
-        self.plot_scene(scene_token=frame['scene_token'], ax=ax)
+        ax = self.plot_scene(scene_token=frame['scene_token'], ax=ax)
         
         # Plot instances
         for inst_token in frame['instances']:
             instance = self.dataset.get('instance', inst_token)
             agent = self.dataset.get('agent', instance['agent_token'])
-            if agent['type'] not in {'Pedestrian', 'Undefined'}:
+            if agent['type'] not in exclude_types:
                 corners = self._get_corners(instance['coords'], agent['size'], instance['heading'])
                 ax.add_patch(patches.Polygon(corners, linewidth=0, fill=True, color='orange'))
 
@@ -170,9 +196,13 @@ class Visualizer():
 
         return ax
 
-    def highlight_instance(self, inst_token, ax = None):
+    def highlight_instance(self, inst_token, ax = None, exclude_types: Set[str]={'Pedestrian', 'Undefined'}):
         """
-        emphasize a certain instance in a frame
+        plot the frame of the given instance and emphasize it with red color
+
+        `scene_token`: The token of the scene
+        `ax`: (Optional) The matplotlib axis handle. If left empty, will create a new axis
+        `exclude_types`: the types that we don't want.
         """
         instance = self.dataset.get('instance', inst_token)
         agent = self.dataset.get('agent', instance['agent_token'])
@@ -186,7 +216,7 @@ class Visualizer():
         self.plot_scene(scene_token=agent['scene_token'], ax=ax)
         
         # Plot the specified instance
-        if agent['type'] not in {'Pedestrian', 'Undefined'}:
+        if agent['type'] not in exclude_types:
             corners = self._get_corners(instance['coords'], agent['size'], instance['heading'])
             ax.add_patch(patches.Polygon(corners, linewidth=0, fill=True, color='red'))
 
@@ -198,7 +228,7 @@ class Visualizer():
 
             _instance = self.dataset.get('instance', _inst_token)
             _agent = self.dataset.get('agent', _instance['agent_token'])
-            if _agent['type'] not in {'Pedestrian', 'Undefined'}:
+            if _agent['type'] not in exclude_types:
                 corners = self._get_corners(_instance['coords'], _agent['size'], _instance['heading'])
                 ax.add_patch(patches.Polygon(corners, linewidth=0, fill=True, color='orange'))
             
@@ -216,11 +246,11 @@ class SemanticVisualizer(Visualizer):
         """
         instantiate the semantic visualizer
         
-        spot_margin: the margin for seperating spot rectangles
-        resolution: distance (m) per pixel. resolution = 0.1 means 0.1m per pixel
-        sensing_limit: the longest distance to sense along 4 directions (m). The side length of the square = 2*sensing_limit
-        steps: the number history steps to plot. If no history is desired, set the steps = 0 and stride = any value.
-        stride: the stride when getting the history. stride = 1 means plot the consecutive frames. stride = 2 means plot one in every 2 frames
+        `spot_margin`: the margin for seperating spot rectangles
+        `resolution`: distance (m) per pixel. resolution = 0.1 means 0.1m per pixel
+        `sensing_limit`: the longest distance to sense along 4 directions (m). The side length of the square = 2*sensing_limit
+        `steps`: the number history steps to plot. If no history is desired, set the steps = 0 and stride = any value.
+        `stride`: the stride when getting the history. stride = 1 means plot the consecutive frames. stride = 2 means plot one in every 2 frames
         """
         super().__init__(dataset)
         
@@ -251,11 +281,11 @@ class SemanticVisualizer(Visualizer):
         self.steps = steps
         self.stride = stride
 
-    def _color_transition(self, max_color, steps):
+    def _color_transition(self, max_color: Tuple, steps: int) -> List[Tuple[int]]:
         """
         generate colors to plot the state history of agents
 
-        max_color: 3-element tuple with r,g,b value. This is the color to plot the current state
+        `max_color`: 3-element tuple with r,g,b value. This is the color to plot the current state
         """
         # If we don't actually need the color band, return the max color directly
         if steps == 0:
@@ -275,9 +305,13 @@ class SemanticVisualizer(Visualizer):
 
         return color_band
 
-    def plot_obstacles(self, draw, fill, scene_token):
+    def plot_obstacles(self, draw: ImageDraw.ImageDraw, fill: Union[int, Tuple[int]], scene_token: str):
         """
         plot static obstacles in this scene
+
+        `draw`: The drawing context of the image
+        `fill`: Color. Would be an int value for binary image, a 3d tuple if RGB
+        `scene_token`: token of the scene
         """
         scene = self.dataset.get('scene', scene_token)
 
@@ -288,21 +322,30 @@ class SemanticVisualizer(Visualizer):
 
             draw.polygon([tuple(p) for p in corners_pixel], fill=fill)
 
-    def plot_instance(self, draw, fill, instance):
+    def plot_instance(self, draw: ImageDraw.ImageDraw, fill: Union[int, Tuple[int]], instance: Dict):
         """
         plot a single instance at a single frame
+
+        `draw`: The drawing context of the image
+        `fill`: Color. Would be an int value for binary image, a 3d tuple if RGB
+        `instance`: The intance object (not its token)
         """
         agent = self.dataset.get('agent', instance['agent_token'])
 
-        if agent['type'] not in {'Pedestrian', 'Undefined'}:
+        if agent['type'] not in {'Pedestrian', 'Bicycle', 'Undefined'}:
             corners_ground = self._get_corners(instance['coords'], agent['size'], instance['heading'])
             corners_pixel = (corners_ground / self.res).astype('int32')
 
             draw.polygon([tuple(p) for p in corners_pixel], fill=fill)
     
-    def plot_instance_timeline(self, draw, color_band, instance_timeline, stride):
+    def plot_instance_timeline(self, draw: ImageDraw.ImageDraw, color_band: List[Tuple[int]], instance_timeline: List[Dict], stride: int):
         """
         plot the timeline of an instance
+        
+        `draw`: The drawing context of the image
+        `color_band`: a series of color to draw the history of the instance
+        `instance_timeline`: a list of instances as the history of the instance
+        `stride`: the stride number to plot the history. stride = 1 means plot every one in the `instance_timeline`, stride = 2 means plot one in two elements.
         """
         len_history = len(instance_timeline) - 1
         max_steps = np.floor( len_history / stride).astype(int)
@@ -317,9 +360,15 @@ class SemanticVisualizer(Visualizer):
         instance = instance_timeline[-1]
         self.plot_instance(draw=draw, fill=color_band[-1], instance=instance)
 
-    def plot_agents(self, draw, fill, frame_token, steps, stride):
+    def plot_agents(self, draw: ImageDraw.ImageDraw, fill: Union[int, Tuple[int]], frame_token: str, steps: int, stride: int):
         """
-        plot all moving agents and their history as fading rectangles
+        for a specific frame, plot all moving agents and their history as fading rectangles
+
+        `draw`: The drawing context of the image
+        `fill`: Color. Would be an int value for binary image, a 3d tuple if RGB
+        `frame_token`: The token of the frame
+        `steps`: number of history steps to draw
+        `stride`: the stride number to plot the history. stride = 1 means plot every one in the `instance_timeline`, stride = 2 means plot one in two elements.
         """
         frame = self.dataset.get('frame', frame_token)
 
@@ -330,11 +379,13 @@ class SemanticVisualizer(Visualizer):
             instance_timeline = self.dataset.get_agent_past(inst_token, timesteps=steps*stride)
             self.plot_instance_timeline(draw, color_band, instance_timeline, stride)
 
-    def spot_available(self, occupy_mask, center, size):
+    def spot_available(self, occupy_mask: Image.Image, center: Union[List, np.ndarray], size: int) -> bool:
         """
         detect whether a certain spot on the map is occupied or not by checking the pixel value
-        center: center location (pixel) of the spot
-        size: the size of the square window for occupancy detection
+
+        `occupy_mask`: A binary PIL image with occupancy marked
+        `center`: center location (pixel) of the spot
+        `size`: the size of the square window for occupancy detection
 
         return: True if empty, false if occupied
         """
@@ -345,9 +396,13 @@ class SemanticVisualizer(Visualizer):
         
         return sum == 0
 
-    def plot_spots(self, occupy_mask, draw, fill):
+    def plot_spots(self, occupy_mask: Image.Image, draw: ImageDraw.ImageDraw, fill: Union[int, Tuple[int]]):
         """
-        plot empty spots
+        plot empty spots. The empty spots are detected from the pixel value oof the `occupy_mask`
+
+        `occupy_mask`: A binary PIL image with occupancy marked
+        `draw`: The drawing context of the image
+        `fill`: Color. Would be an int value for binary image, a 3d tuple if RGB
         """
         for _, p in self.parking_spaces.iterrows():
             p_coords_ground = p[2:10].to_numpy().reshape((4, 2))
@@ -359,9 +414,11 @@ class SemanticVisualizer(Visualizer):
             if self.spot_available(occupy_mask, center, size=8):
                 draw.polygon([tuple(p) for p in p_coords_pixel], fill=fill)
 
-    def plot_frame(self, frame_token) -> Image:
+    def plot_frame(self, frame_token: str) -> Image.Image:
         """
         plot frame as a semantic image
+
+        `frame_token`: The token of the frame
         """
 
         frame = self.dataset.get('frame', frame_token)
@@ -384,13 +441,13 @@ class SemanticVisualizer(Visualizer):
 
         return img_frame
 
-    def inst_centric(self, img_frame: Image, inst_token, center_pose: np.ndarray=None):
+    def inst_centric(self, img_frame: Image.Image, inst_token: str, center_pose: np.ndarray=None) -> Image.Image:
         """
         crop the local region around a center pose and replot the instance in ego color. 
 
-        img_frame: the image of the SAME frame with inst_token
-        inst_token: the instance to be highlighted
-        center_pose: None by default to use the pose of instance. But if given a numpy array of (x, y, heading) in global coordinates, will crop around it.
+        `img_frame`: the image of the SAME frame with inst_token
+        `inst_token`: the instance to be highlighted
+        `center_pose`: None by default to use the pose of instance. But if given a numpy array of (x, y, heading) in global coordinates, will crop around it.
         """
         img = img_frame.copy()
         draw = ImageDraw.Draw(img)
@@ -421,14 +478,15 @@ class SemanticVisualizer(Visualizer):
 
         return img_instance
 
-    def plot_traj(self, inst_centric_view: Image, center_pose: np.ndarray, traj: np.ndarray, color: Tuple[int], width: int):
+    def plot_traj(self, inst_centric_view: Image.Image, center_pose: np.ndarray, traj: np.ndarray, color: Tuple[int], width: int):
         """
         plot trajectory onto instance centric view. CANNOT be used for the entire frame
 
-        center_pose: center ground pose (x, y, heading) of the instance centric view
-        traj: numpy array with shape (N, 2+) for (x, y, ...) coordinates
-        color: tuple of (R, G, B) value
-        width: int size for line width
+        `inst_centric_view`: The instance centric view to plot the trajectory
+        `center_pose`: center ground pose (x, y, heading) of the instance centric view
+        `traj`: numpy array with shape (N, 2+) for (x, y, ...) coordinates
+        `color`: tuple of (R, G, B) value
+        `width`: int size for line width
         """
         img = inst_centric_view.copy()
         draw = ImageDraw.Draw(img)
@@ -438,12 +496,12 @@ class SemanticVisualizer(Visualizer):
 
         return img
 
-    def _is_visible(self, current_state, target_state):
+    def _is_visible(self, current_state: np.ndarray, target_state: np.ndarray) -> bool:
         """
         check whether the target state is visible inside the instance-centric crop
 
-        current_state: (x, y, heading, speed) of current instance state
-        target_state: (x, y, heading, speed) of the point to be tested
+        `current_state`: (x, y, heading, speed) of current instance state
+        `target_state`: (x, y, heading, speed) of the point to be tested
         """
         theta = current_state[2]
         A = np.array([[ np.sin(theta), -np.cos(theta)], 
@@ -456,12 +514,12 @@ class SemanticVisualizer(Visualizer):
 
         return all( A @ offset < b)
 
-    def global_ground_to_local_pixel(self, current_state, target_state):
+    def global_ground_to_local_pixel(self, current_state: np.ndarray, target_state: np.ndarray) -> np.ndarray:
         """
         transform the target state from global ground coordinates to instance-centric local crop
 
-        current_state: numpy array (x, y, theta, ...) in global coordinates
-        target_state: numpy array (x, y, ...) in global coordinates
+        `current_state`: numpy array (x, y, theta, ...) in global coordinates
+        `target_state`: numpy array (x, y, ...) in global coordinates
         """
         current_theta = current_state[2]
         R = np.array([[np.cos(-current_theta), -np.sin(-current_theta)], 
@@ -473,14 +531,14 @@ class SemanticVisualizer(Visualizer):
 
         return np.floor(translated_ground / self.res).astype('int32')
 
-    def local_pixel_to_global_ground(self, current_state, target_coords):
+    def local_pixel_to_global_ground(self, current_state: np.ndarray, target_coords: np.ndarray) -> np.ndarray:
         """
         transform the target coordinate from pixel coordinate in the local inst-centric crop to global ground coordinates
 
         Note: Accuracy depends on the resolution (self.res)
 
-        current_state: numpy array (x, y, theta, ...) in global coordinates
-        target_coords: numpy array (x, y) in int pixel coordinates
+        `current_state`: numpy array (x, y, theta, ...) in global coordinates
+        `target_coords`: numpy array (x, y) in int pixel coordinates
         """
         scaled_local = target_coords * self.res
         translation = self.sensing_limit * np.ones(2)

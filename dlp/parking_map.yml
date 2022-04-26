@@ -171,16 +171,16 @@ WAYPOINTS: {
     'C1': { # 1st column (left one)
         'bounds': [
             [3.07, 60.66],
-            [3.07, 13.55]
+            [3.07, 4.5]
         ],
-        'nums': 11
+        'nums': 13
     },
     'C2': { # 2nd column (right one)
         'bounds': [
             [80.18, 60.72],
-            [80.18, 14.2]
+            [80.18, 4.5]
         ],
-        'nums': 11
+        'nums': 13
     },
     'R1C1BR': { # bottom-right intersection of row 1 and column 1
         'bounds': [
@@ -221,6 +221,13 @@ WAYPOINTS: {
         'bounds': [
             [4.6, 11.8],
             [6.6, 10.5]
+        ],
+        'nums': 2
+    },
+    'R4C1BR': {
+        'bounds': [
+            [4.6, 7.7],
+            [6.6, 9.4]
         ],
         'nums': 2
     },
@@ -266,6 +273,13 @@ WAYPOINTS: {
         ],
         'nums': 2
     },
+    'R4C2BL': {
+        'bounds': [
+            [78.65, 7.7],
+            [76.65, 9.4]
+        ],
+        'nums': 2
+    },
     'R1C2BR': { # bottom-right intersection of row 1 and column 2
         'bounds': [
             [81.7, 63.05],
@@ -305,6 +319,13 @@ WAYPOINTS: {
         'bounds': [
             [81.7, 12.5],
             [83.7, 11]
+        ],
+        'nums': 2
+    },
+    'R4C2BR': {
+        'bounds': [
+            [81.7, 7.7],
+            [83.7, 9.4]
         ],
         'nums': 2
     },
