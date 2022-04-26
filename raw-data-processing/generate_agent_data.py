@@ -16,11 +16,10 @@ if __name__ == "__main__":
     all_scenes = ds.list_scenes()
     scene_token = all_scenes[0]
     scene = ds.get('scene', scene_token)
-    i = -1
     agents = {}
     spot_dict = {}
     frame_dict = {}
-    for agent_token in scene['agents']:
+    for i, agent_token in enumerate(scene['agents']):
         agent_instances = ds.get_agent_instances(agent_token)
         agent = ds.get('agent', agent_token)
         if agent['type'] in {'Pedestrian', 'Undefined'}:
@@ -83,7 +82,6 @@ if __name__ == "__main__":
         agent['end_nonzero_v_timestep'] = end
         agent['time_diff_timestep'] = time_diff
         """
-        i += 1
         agents[i] = agent
     with open('raw_agent_data.pickle', 'wb') as fp:
         pickle.dump(agents, fp)
