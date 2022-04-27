@@ -5,10 +5,16 @@ Authors: Xu Shen (xu_shen@berkeley.edu), Michelle Pan, Vijay Govindarajan, Neela
 
 Model Predictive Control (MPC) Lab at UC Berkeley
 
+![Normal Visualization](imgs/dlp_vis.png)
+
+![Semantic Visualization](imgs/dlp_semantic.png)
+
+![Instance Centric View](imgs/inst_centric.png)
+
 ## Install
 
 1. Clone this repo
-2. Run `pip install -e .` in the root directory of this repo
+2. With your virtualenv activated, run `pip install -e .` in the root directory of this repo.
 3. Place the JSON data files in the `./data` directory
 
 ## Usage in other projects
