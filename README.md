@@ -5,11 +5,11 @@ Authors: Xu Shen (xu_shen@berkeley.edu), Michelle Pan, Vijay Govindarajan, Neela
 
 Model Predictive Control (MPC) Lab at UC Berkeley
 
-![Normal Visualization](imgs/dlp_vis.png)
+![Normal Visualization](docs/dlp_vis.png)
 
-![Semantic Visualization](imgs/dlp_semantic.png)
+![Semantic Visualization](docs/dlp_semantic.png)
 
-![Instance Centric View](imgs/inst_centric.png)
+![Instance Centric View](docs/inst_centric.png)
 
 ## Install
 
