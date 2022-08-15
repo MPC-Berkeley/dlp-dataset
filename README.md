@@ -37,3 +37,9 @@ from dlp.dataset import Dataset as DlpDataset
 
 1. [`notebooks/tutorial.ipynb`](notebooks/tutorial.ipynb) explains the structure of the dataset and available APIs
 2. [`notebooks/visualization.ipynb`](notebooks/visualization.ipynb) demonstrates the dataset by visualizing it with either matplotlib or PIL
+
+## Partner
+Source Trajectory and Bounding box data were annotated and gathered with DataFromSky [TrafficSurvey](https://datafromsky.com/trafficsurvey/) - an AI video analytics-based service for gathering advanced traffic data.
+<div align=center>
+<img height="60" src="https://user-images.githubusercontent.com/31999415/184691899-b398a790-03d8-404f-91b7-ed42d46f3a59.png"/>      <img height="60" src="https://user-images.githubusercontent.com/31999415/184692013-87175e25-b520-4929-b25a-8adeac612b08.jpeg"/>      <img height="60" src="https://datafromsky.com/wp-content/uploads/2015/03/datafromsky-logo.svg"/>
+</div>
