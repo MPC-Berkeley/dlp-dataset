@@ -2,6 +2,9 @@ from dlp.dataset import Dataset
 from pathlib import Path
 import pickle
 import numpy as np
+from scipy.io import savemat
+
+dji_number = "0030"
 
 with open('spots_data.pickle', 'rb') as f:
     parking_spaces = pickle.load(f)
@@ -12,7 +15,7 @@ def closest_spot_to_coords(coords):
 if __name__ == "__main__":
     ds = Dataset()
     home_path = str(Path.home())
-    ds.load(home_path + '/dlp-dataset/data/DJI_0012')
+    ds.load(home_path + '/dlp-dataset/data/DJI_' + dji_number)
     all_scenes = ds.list_scenes()
     scene_token = all_scenes[0]
     scene = ds.get('scene', scene_token)
@@ -22,8 +25,9 @@ if __name__ == "__main__":
     for i, agent_token in enumerate(scene['agents']):
         agent_instances = ds.get_agent_instances(agent_token)
         agent = ds.get('agent', agent_token)
-        if agent['type'] in {'Pedestrian', 'Undefined'}:
+        if agent['type'] in {'Pedestrian', 'Undefined', 'Bicycle', 'Motorcycle'}:
             continue
+        print(i, agent['type'])
         size = agent['size']
         dv = []
         v = []
@@ -83,5 +87,21 @@ if __name__ == "__main__":
         agent['time_diff_timestep'] = time_diff
         """
         agents[i] = agent
-    with open('raw_agent_data.pickle', 'wb') as fp:
+
+        velocities = []
+        st = None
+        for j in range(len(t)):
+            if st is None:
+                if v[j] > 0.0001:
+                    st = t[j]
+                    velocities.append([t[j] - st, v[j]])
+            else:
+                velocities.append([t[j] - st, v[j]])
+        for j in reversed(range(len(velocities))):
+            if velocities[j][1] > 0.0001:
+                velocities = velocities[:j + 1]
+                break
+        savemat("DJI_" + dji_number + "/real_vehicle_" + str(i) + ".mat", {"velocity": velocities})
+
+    with open('raw_agent_data_' + dji_number + '.pickle', 'wb') as fp:
         pickle.dump(agents, fp)
