@@ -117,7 +117,7 @@ WAYPOINTS: {
             [80.45, 64.95],
             [9.09, 64.95]
         ],
-        'nums': 27
+        'nums': 79 # was 27, now times as dense
     },
     'R1R': { # 1st row, right
         'bounds': [
