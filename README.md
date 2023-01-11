@@ -9,7 +9,7 @@ The [Dragon Lake Parking (DLP) Dataset](https://sites.google.com/berkeley.edu/dl
 
 Abundant vehicle parking maneuvers and interactions are recorded. To the best of our knowledge, this is the first and largest public dataset designated for the parking scenario (up to April 2022), featuring high data accuracy and a rich variety of realistic human driving behavior. To download trial sample or request full access, please visit the dataset webpage for more infomation.
 
-> **Note**: If you experience connectivity issue to the webpage above, [try this backup page](https://bit.ly/dlp-notion).
+> **Note**: If you experience connectivity issue to the webpage above, [try this backup page](https://cutt.ly/dlp-notion).
 
 Authors: Xu Shen (xu_shen@berkeley.edu), Michelle Pan, Vijay Govindarajan, Neelay Velingker, Alex Wong
 
