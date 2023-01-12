@@ -11,7 +11,7 @@ Abundant vehicle parking maneuvers and interactions are recorded. To the best of
 
 > **Note**: If you experience connectivity issue to the webpage above, [try this backup page](https://cutt.ly/dlp-notion).
 
-Authors: Xu Shen (xu_shen@berkeley.edu), Michelle Pan, Vijay Govindarajan, Neelay Velingker, Alex Wong
+Authors: Xu Shen (xu_shen@berkeley.edu), Michelle Pan, Vijay Govindarajan, Neelay Velingker, Alex Wong, Yibin Li
 
 Model Predictive Control (MPC) Lab at UC Berkeley
 
