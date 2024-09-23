@@ -38,7 +38,8 @@ class Visualizer():
 
         for ax, area in PARKING_AREAS.items():
             for a in area['areas']:
-                df = df.append(self._divide_rect(a['coords'] if a['coords'] else area['bounds'], *a['shape'], idx, ax))
+                new_row = self._divide_rect(a['coords'] if a['coords'] else area['bounds'], *a['shape'], idx, ax)
+                df = pd.concat([df, new_row], ignore_index=True)
                 idx += a['shape'][0] * a['shape'][1]
 
         df.columns = ['id', 'area', 'top_left_x', 'top_left_y', 'top_right_x', 'top_right_y', 'btm_right_x', 'btm_right_y', 'btm_left_x', 'btm_left_y']
@@ -79,7 +80,9 @@ class Visualizer():
 
         for r in range(rows):
             for c in range(cols):
-                df = df.append([[idx+1, area, *points[r][c], *points[r][c+1], *points[r+1][c+1], *points[r+1][c]]])
+                new_row = pd.DataFrame([[idx+1, area, *points[r][c], *points[r][c+1], *points[r+1][c+1], *points[r+1][c]]])
+                # Use pd.concat() to add the new row
+                df = pd.concat([df, new_row], ignore_index=True)
                 idx += 1
                 
         return df
